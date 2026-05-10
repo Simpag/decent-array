@@ -23,7 +23,7 @@ from decent_array.types import SupportedDevices
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from decent_array.array import Array
+    from decent_array import Array
     from decent_array.types import ArrayKey
 
 

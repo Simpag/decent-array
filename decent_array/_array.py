@@ -177,7 +177,7 @@ class Array:  # noqa: PLR0904
 
     def __setitem__(self, key: ArrayKey, value: Array | float) -> None:
         """Set the item at ``key`` to ``value``."""
-        if type(value) is not Array:
+        if not isinstance(value, Array):
             value = Array(value)
         self._backend.set_item(self, key, value)
 

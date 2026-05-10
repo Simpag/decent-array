@@ -39,7 +39,7 @@ def autodecorate_cost_method[T: Callable[..., Any]](superclass_method: T) -> Cal
                     # is annotated ``-> Array``.
 
     """
-    from decent_array.array import Array  # noqa: PLC0415
+    from decent_array import Array  # noqa: PLC0415
 
     return_is_array = superclass_method.__annotations__.get("return") is Array
 

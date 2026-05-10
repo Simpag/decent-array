@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 from numpy.typing import NDArray
 
-from decent_array.array import Array
+from decent_array import Array
 from decent_array.interoperability._abstracts import Backend
 from decent_array.interoperability._backend_manager import register_backend
 from decent_array.types import ArrayKey, SupportedDevices, SupportedFrameworks

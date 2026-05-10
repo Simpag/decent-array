@@ -24,7 +24,7 @@ from decent_array.interoperability._backend_manager import _instantiate, registe
 from decent_array.types import SupportedDevices, SupportedFrameworks
 
 if TYPE_CHECKING:
-    from decent_array.array import Array
+    from decent_array import Array
     from decent_array.interoperability._abstracts import Backend
 
 
