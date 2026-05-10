@@ -115,3 +115,57 @@ jobs:
 
       - name: Check git diff
         run: git diff --exit-code || { echo 'Error - Docs are stale, please regenerate with `tox -e sphinx`.'; exit 1; }
+
+  mypyc-macos-latest:
+    runs-on: "macos-latest"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run mypyc
+        run: tox -e mypyc
+
+  mypyc-ubuntu-latest:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run mypyc
+        run: tox -e mypyc
+    
+  mypyc-windows-latest:
+    runs-on: "windows-latest"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run mypyc
+        run: tox -e mypyc
