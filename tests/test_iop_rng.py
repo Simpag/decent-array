@@ -147,13 +147,13 @@ def test_uniform_custom_range(backend: tuple) -> None:
 
 
 def test_normal_like(backend: tuple) -> None:
-    src = iop.from_numpy(np.zeros((3, 4)))
+    src = iop.from_numpy(np.zeros((3, 4), dtype=np.float32))
     arr = iop.normal_like(src)
     assert iop.shape(arr) == (3, 4)
 
 
 def test_uniform_like(backend: tuple) -> None:
-    src = iop.from_numpy(np.zeros((3, 4)))
+    src = iop.from_numpy(np.zeros((3, 4), dtype=np.float32))
     arr = iop.uniform_like(src, low=0.0, high=1.0)
     assert iop.shape(arr) == (3, 4)
     samples = _np(arr)
@@ -163,14 +163,14 @@ def test_uniform_like(backend: tuple) -> None:
 
 def test_choice_shape(backend: tuple) -> None:
     iop.set_seed(1)
-    population = iop.from_numpy(np.array([10.0, 20.0, 30.0, 40.0, 50.0]))
+    population = iop.from_numpy(np.array([10.0, 20.0, 30.0, 40.0, 50.0], dtype=np.float32))
     sample = iop.choice(population, size=3)
     assert iop.shape(sample) == (3,)
 
 
 def test_choice_values_in_population(backend: tuple) -> None:
     iop.set_seed(1)
-    pop_np = np.array([10.0, 20.0, 30.0, 40.0, 50.0])
+    pop_np = np.array([10.0, 20.0, 30.0, 40.0, 50.0], dtype=np.float32)
     sample = iop.choice(iop.from_numpy(pop_np), size=10)
     drawn = _np(sample).reshape(-1)
     assert all(v in pop_np for v in drawn)
