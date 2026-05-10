@@ -119,6 +119,116 @@ def test_pow_scalar(backend: tuple) -> None:
     np.testing.assert_allclose(_np(a**2), [1.0, 4.0, 9.0])
 
 
+# Comparisons ------------------------------------------------------------
+
+
+def test_eq_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    result = a == b
+    assert isinstance(result, Array)
+    np.testing.assert_array_equal(_np(result), [True, False, True])
+
+
+def test_eq_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a == 2.0), [False, True, False])
+
+
+def test_ne_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    np.testing.assert_array_equal(_np(a != b), [False, True, False])
+
+
+def test_ne_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a != 2.0), [True, False, True])
+
+
+def test_lt_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 0.0]))
+    np.testing.assert_array_equal(_np(a < b), [False, True, False])
+
+
+def test_lt_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a < 2.5), [True, True, False])
+
+
+def test_le_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 0.0]))
+    np.testing.assert_array_equal(_np(a <= b), [True, True, False])
+
+
+def test_le_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a <= 2.0), [True, True, False])
+
+
+def test_gt_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 0.0]))
+    np.testing.assert_array_equal(_np(a > b), [False, False, True])
+
+
+def test_gt_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a > 1.5), [False, True, True])
+
+
+def test_ge_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 0.0]))
+    np.testing.assert_array_equal(_np(a >= b), [True, False, True])
+
+
+def test_ge_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(a >= 2.0), [False, True, True])
+
+
+def test_array_is_unhashable(backend: tuple) -> None:  # noqa: ARG001
+    """
+    Overriding ``__eq__`` makes Array unhashable, matching numpy/torch/jax/tf.
+
+    The check is on ``hash(arr)`` rather than ``Array.__hash__ is None`` because
+    mypyc realizes unhashability via a type-error-raising slot descriptor while
+    pure Python sets the attribute to ``None``; ``hash()`` raises ``TypeError``
+    in either case.
+    """
+    arr = iop.from_numpy(np.array([1.0]))
+    with pytest.raises(TypeError, match=re.compile(r"unhashable", re.IGNORECASE)):
+        hash(arr)
+
+
+# Bitwise ----------------------------------------------------------------
+
+
+def test_and_array(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0]))
+    mask1 = a > 1.0
+    mask2 = a < 4.0
+    np.testing.assert_array_equal(_np(mask1 & mask2), [False, True, True, False])
+
+
+def test_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    mask = a > 1.0
+    np.testing.assert_array_equal(_np(mask & True), [False, True, True])  # noqa: E712
+    np.testing.assert_array_equal(_np(mask & False), [False, False, False])  # noqa: E712
+
+
+def test_rand_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    mask = a > 1.0
+    # Python evaluates ``True & mask`` via ``mask.__rand__(True)`` since bool's
+    # ``__and__`` doesn't accept Array.
+    np.testing.assert_array_equal(_np(True & mask), [False, True, True])  # noqa: E712
+
+
 # In-place arithmetic -----------------------------------------------------
 
 

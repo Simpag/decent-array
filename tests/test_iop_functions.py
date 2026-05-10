@@ -104,7 +104,7 @@ def test_stack(backend: tuple) -> None:
 def test_stack_dim(backend: tuple) -> None:
     a = iop.from_numpy(np.array([1.0, 2.0]))
     b = iop.from_numpy(np.array([3.0, 4.0]))
-    arr = iop.stack([a, b], dim=1)
+    arr = iop.stack([a, b], axis=1)
     np.testing.assert_allclose(_np(arr), [[1.0, 3.0], [2.0, 4.0]])
 
 
@@ -128,7 +128,7 @@ def test_transpose_default(backend: tuple) -> None:
 
 def test_transpose_explicit_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.zeros((2, 3, 4), dtype=np.float32))
-    out = iop.transpose(arr, dim=(1, 0, 2))
+    out = iop.transpose(arr, axis=(1, 0, 2))
     assert iop.shape(out) == (3, 2, 4)
 
 
@@ -154,13 +154,13 @@ def test_squeeze_default(backend: tuple) -> None:
 
 def test_squeeze_specific_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.zeros((1, 3, 1)))
-    assert iop.shape(iop.squeeze(arr, dim=0)) == (3, 1)
+    assert iop.shape(iop.squeeze(arr, axis=0)) == (3, 1)
 
 
 def test_unsqueeze(backend: tuple) -> None:
     arr = iop.from_numpy(np.zeros((3,)))
-    assert iop.shape(iop.unsqueeze(arr, dim=0)) == (1, 3)
-    assert iop.shape(iop.unsqueeze(arr, dim=1)) == (3, 1)
+    assert iop.shape(iop.unsqueeze(arr, axis=0)) == (1, 3)
+    assert iop.shape(iop.unsqueeze(arr, axis=1)) == (3, 1)
 
 
 def test_diag_from_vector(backend: tuple) -> None:
@@ -222,7 +222,7 @@ def test_norm_p1(backend: tuple) -> None:
 
 def test_norm_dim_keepdims(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[3.0, 4.0], [6.0, 8.0]]))
-    out = iop.norm(arr, p=2, dim=1, keepdims=True)
+    out = iop.norm(arr, p=2, axis=1, keepdims=True)
     assert iop.shape(out) == (2, 1)
     np.testing.assert_allclose(_np(out).reshape(-1), [5.0, 10.0])
 
@@ -237,12 +237,12 @@ def test_sum_all(backend: tuple) -> None:
 
 def test_sum_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
-    np.testing.assert_allclose(_np(iop.sum(arr, dim=0)), [4.0, 6.0])
+    np.testing.assert_allclose(_np(iop.sum(arr, axis=0)), [4.0, 6.0])
 
 
 def test_sum_dim_keepdims(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
-    out = iop.sum(arr, dim=0, keepdims=True)
+    out = iop.sum(arr, axis=0, keepdims=True)
     assert iop.shape(out) == (1, 2)
 
 
@@ -253,7 +253,7 @@ def test_mean_all(backend: tuple) -> None:
 
 def test_mean_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
-    np.testing.assert_allclose(_np(iop.mean(arr, dim=1)), [1.5, 3.5])
+    np.testing.assert_allclose(_np(iop.mean(arr, axis=1)), [1.5, 3.5])
 
 
 def test_min_all(backend: tuple) -> None:
@@ -263,7 +263,7 @@ def test_min_all(backend: tuple) -> None:
 
 def test_min_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]]))
-    np.testing.assert_allclose(_np(iop.min(arr, dim=0)), [1.0, 2.0])
+    np.testing.assert_allclose(_np(iop.min(arr, axis=0)), [1.0, 2.0])
 
 
 def test_max_all(backend: tuple) -> None:
@@ -273,7 +273,7 @@ def test_max_all(backend: tuple) -> None:
 
 def test_max_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]]))
-    np.testing.assert_allclose(_np(iop.max(arr, dim=0)), [3.0, 5.0])
+    np.testing.assert_allclose(_np(iop.max(arr, axis=0)), [3.0, 5.0])
 
 
 def test_any_true(backend: tuple) -> None:
@@ -396,6 +396,93 @@ def test_maximum_array_and_scalar(backend: tuple) -> None:
     np.testing.assert_allclose(_np(iop.maximum(a, 4.0)), [4.0, 5.0, 4.0])
 
 
+# Comparisons ------------------------------------------------------------
+
+
+def test_eq_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.eq(a, b)), [True, False, True])
+
+
+def test_eq_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.eq(a, 2.0)), [False, True, False])
+
+
+def test_ne_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.ne(a, b)), [False, True, False])
+
+
+def test_ne_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.ne(a, 2.0)), [True, False, True])
+
+
+def test_lt_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    np.testing.assert_array_equal(_np(iop.lt(a, b)), [True, False, False])
+
+
+def test_lt_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.lt(a, 2.5)), [True, True, False])
+
+
+def test_le_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    np.testing.assert_array_equal(_np(iop.le(a, b)), [True, True, False])
+
+
+def test_le_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.le(a, 2.0)), [True, True, False])
+
+
+def test_gt_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    np.testing.assert_array_equal(_np(iop.gt(a, b)), [False, False, True])
+
+
+def test_gt_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.gt(a, 1.5)), [False, True, True])
+
+
+def test_ge_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    np.testing.assert_array_equal(_np(iop.ge(a, b)), [False, True, True])
+
+
+def test_ge_array_and_scalar(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    np.testing.assert_array_equal(_np(iop.ge(a, 2.0)), [False, True, True])
+
+
+# Bitwise ----------------------------------------------------------------
+
+
+def test_bitwise_and_bool_arrays(backend: tuple) -> None:
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0]))
+    mask1 = iop.gt(a, 1.0)
+    mask2 = iop.lt(a, 4.0)
+    np.testing.assert_array_equal(_np(iop.bitwise_and(mask1, mask2)), [False, True, True, False])
+
+
+def test_bitwise_and_int_arrays(backend: tuple) -> None:
+    # Bitwise on int dtypes is well-defined across all backends; bool tensors are
+    # tested separately because TF dispatches them to ``logical_and``.
+    a = iop.from_numpy(np.array([0b1100, 0b1010], dtype=np.int32))
+    b = iop.from_numpy(np.array([0b1010, 0b0110], dtype=np.int32))
+    np.testing.assert_array_equal(_np(iop.bitwise_and(a, b)), [0b1000, 0b0010])
+
+
 def test_argmax_default(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0]))
     np.testing.assert_allclose(_np(iop.argmax(arr)), 5)
@@ -403,7 +490,7 @@ def test_argmax_default(backend: tuple) -> None:
 
 def test_argmax_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
-    np.testing.assert_allclose(_np(iop.argmax(arr, dim=1)), [1, 0])
+    np.testing.assert_allclose(_np(iop.argmax(arr, axis=1)), [1, 0])
 
 
 def test_argmin_default(backend: tuple) -> None:
@@ -414,12 +501,12 @@ def test_argmin_default(backend: tuple) -> None:
 
 def test_argmin_dim(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
-    np.testing.assert_allclose(_np(iop.argmin(arr, dim=1)), [0, 1])
+    np.testing.assert_allclose(_np(iop.argmin(arr, axis=1)), [0, 1])
 
 
 def test_argmax_keepdims(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
-    out = iop.argmax(arr, dim=1, keepdims=True)
+    out = iop.argmax(arr, axis=1, keepdims=True)
     assert iop.shape(out) == (2, 1)
 
 

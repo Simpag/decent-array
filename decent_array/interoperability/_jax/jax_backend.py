@@ -89,16 +89,16 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def to_array(self, array: float | bool) -> Array:
         return Array(jnp.array(array, device=self._native_device))
 
-    def stack(self, arrays: Sequence[Array], dim: int = 0) -> Array:
+    def stack(self, arrays: Sequence[Array], axis: int = 0) -> Array:
         if len(arrays) == 0:
             raise ValueError("Cannot stack an empty sequence of arrays.")
-        return Array(jnp.stack([a.value for a in arrays], axis=dim))
+        return Array(jnp.stack([a.value for a in arrays], axis=axis))
 
     def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
         return Array(jnp.reshape(array.value, shape))
 
-    def transpose(self, array: Array, dim: tuple[int, ...] | None = None) -> Array:
-        return Array(jnp.transpose(array.value, axes=dim))
+    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
+        return Array(jnp.transpose(array.value, axes=axis))
 
     def shape(self, array: Array) -> tuple[int, ...]:
         return tuple(array.value.shape)
@@ -109,11 +109,11 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def ndim(self, array: Array) -> int:
         return int(array.value.ndim)
 
-    def squeeze(self, array: Array, dim: int | tuple[int, ...] | None = None) -> Array:
-        return Array(jnp.squeeze(array.value, axis=dim))
+    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
+        return Array(jnp.squeeze(array.value, axis=axis))
 
-    def unsqueeze(self, array: Array, dim: int) -> Array:
-        return Array(jnp.expand_dims(array.value, axis=dim))
+    def unsqueeze(self, array: Array, axis: int) -> Array:
+        return Array(jnp.expand_dims(array.value, axis=axis))
 
     def diag(self, array: Array) -> Array:
         return Array(jnp.diag(array.value))
@@ -133,24 +133,24 @@ class JaxBackend(Backend):  # noqa: PLR0904
         self,
         array: Array,
         p: float = 2,
-        dim: int | tuple[int, ...] | None = None,
+        axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
-        return Array(jnp.linalg.norm(array.value, ord=p, axis=dim, keepdims=keepdims))
+        return Array(jnp.linalg.norm(array.value, ord=p, axis=axis, keepdims=keepdims))
 
     # Math reductions
 
-    def sum(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.sum(array.value, axis=dim, keepdims=keepdims))
+    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.sum(array.value, axis=axis, keepdims=keepdims))
 
-    def mean(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.mean(array.value, axis=dim, keepdims=keepdims))
+    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.mean(array.value, axis=axis, keepdims=keepdims))
 
-    def min(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.min(array.value, axis=dim, keepdims=keepdims))
+    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.min(array.value, axis=axis, keepdims=keepdims))
 
-    def max(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.max(array.value, axis=dim, keepdims=keepdims))
+    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.max(array.value, axis=axis, keepdims=keepdims))
 
     def any(self, array: Array) -> bool:
         return bool(jnp.any(array.value))
@@ -202,6 +202,31 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def sqrt(self, array: Array) -> Array:
         return Array(jnp.sqrt(array.value))
 
+    # Comparisons
+
+    def eq(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.equal(_unwrap(array1), _unwrap(array2)))
+
+    def ne(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.not_equal(_unwrap(array1), _unwrap(array2)))
+
+    def lt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.less(_unwrap(array1), _unwrap(array2)))
+
+    def le(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.less_equal(_unwrap(array1), _unwrap(array2)))
+
+    def gt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.greater(_unwrap(array1), _unwrap(array2)))
+
+    def ge(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.greater_equal(_unwrap(array1), _unwrap(array2)))
+
+    # Bitwise
+
+    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(jnp.bitwise_and(_unwrap(array1), _unwrap(array2)))
+
     # Operators
 
     def sign(self, array: Array) -> Array:
@@ -210,11 +235,11 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def maximum(self, array1: Array | float, array2: Array | float) -> Array:
         return Array(jnp.maximum(_unwrap(array1), _unwrap(array2)))
 
-    def argmax(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.argmax(array.value, axis=dim, keepdims=keepdims))
+    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.argmax(array.value, axis=axis, keepdims=keepdims))
 
-    def argmin(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.argmin(array.value, axis=dim, keepdims=keepdims))
+    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.argmin(array.value, axis=axis, keepdims=keepdims))
 
     def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
         # JAX arrays are immutable; rebind the wrapper to a new array with `key` updated.

@@ -93,17 +93,17 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def to_array(self, array: float | bool) -> Array:
         return Array(torch.tensor(array, device=self._native_device))
 
-    def stack(self, arrays: Sequence[Array], dim: int = 0) -> Array:
+    def stack(self, arrays: Sequence[Array], axis: int = 0) -> Array:
         if len(arrays) == 0:
             raise ValueError("Cannot stack an empty sequence of arrays.")
-        return Array(torch.stack([a.value for a in arrays], dim=dim))
+        return Array(torch.stack([a.value for a in arrays], dim=axis))
 
     def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
         return Array(torch.reshape(array.value, shape))
 
-    def transpose(self, array: Array, dim: tuple[int, ...] | None = None) -> Array:
+    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
         v = array.value
-        dims = dim if dim is not None else tuple(reversed(range(v.ndim)))
+        dims = axis if axis is not None else tuple(reversed(range(v.ndim)))
         return Array(torch.permute(v, dims=dims))
 
     def shape(self, array: Array) -> tuple[int, ...]:
@@ -115,14 +115,14 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def ndim(self, array: Array) -> int:
         return int(array.value.ndim)
 
-    def squeeze(self, array: Array, dim: int | tuple[int, ...] | None = None) -> Array:
+    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             return Array(torch.squeeze(v))
-        return Array(torch.squeeze(v, dim=dim))
+        return Array(torch.squeeze(v, dim=axis))
 
-    def unsqueeze(self, array: Array, dim: int) -> Array:
-        return Array(torch.unsqueeze(array.value, dim=dim))
+    def unsqueeze(self, array: Array, axis: int) -> Array:
+        return Array(torch.unsqueeze(array.value, dim=axis))
 
     def diag(self, array: Array) -> Array:
         return Array(torch.diag(array.value))
@@ -142,36 +142,36 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
         self,
         array: Array,
         p: float = 2,
-        dim: int | tuple[int, ...] | None = None,
+        axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
-        return Array(torch.linalg.norm(array.value, ord=p, dim=dim, keepdim=keepdims))
+        return Array(torch.linalg.norm(array.value, ord=p, axis=axis, keepdim=keepdims))
 
     # Math reductions
 
-    def sum(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             return Array(torch.sum(v))
-        return Array(torch.sum(v, dim=dim, keepdim=keepdims))
+        return Array(torch.sum(v, dim=axis, keepdim=keepdims))
 
-    def mean(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             return Array(torch.mean(v))
-        return Array(torch.mean(v, dim=dim, keepdim=keepdims))
+        return Array(torch.mean(v, dim=axis, keepdim=keepdims))
 
-    def min(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             return Array(torch.min(v))
-        return Array(torch.amin(v, dim=dim, keepdim=keepdims))
+        return Array(torch.amin(v, dim=axis, keepdim=keepdims))
 
-    def max(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             return Array(torch.max(v))
-        return Array(torch.amax(v, dim=dim, keepdim=keepdims))
+        return Array(torch.amax(v, dim=axis, keepdim=keepdims))
 
     def any(self, array: Array) -> bool:
         return bool(torch.any(array.value).item())
@@ -222,6 +222,31 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def sqrt(self, array: Array) -> Array:
         return Array(torch.sqrt(array.value))
 
+    # Comparisons
+
+    def eq(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.eq(_unwrap(array1), _unwrap(array2)))
+
+    def ne(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.ne(_unwrap(array1), _unwrap(array2)))
+
+    def lt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.lt(_unwrap(array1), _unwrap(array2)))
+
+    def le(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.le(_unwrap(array1), _unwrap(array2)))
+
+    def gt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.gt(_unwrap(array1), _unwrap(array2)))
+
+    def ge(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.ge(_unwrap(array1), _unwrap(array2)))
+
+    # Bitwise
+
+    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(torch.bitwise_and(_unwrap(array1), _unwrap(array2)))
+
     # Operators
 
     def sign(self, array: Array) -> Array:
@@ -238,11 +263,11 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
             b = torch.tensor(b, dtype=a.dtype, device=a.device)
         return Array(torch.maximum(a, b))
 
-    def argmax(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-        return Array(torch.argmax(array.value, dim=dim, keepdim=keepdims))
+    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(torch.argmax(array.value, dim=axis, keepdim=keepdims))
 
-    def argmin(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-        return Array(torch.argmin(array.value, dim=dim, keepdim=keepdims))
+    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(torch.argmin(array.value, dim=axis, keepdim=keepdims))
 
     def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
         array.value[key] = value.value

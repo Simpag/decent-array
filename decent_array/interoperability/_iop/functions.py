@@ -126,11 +126,11 @@ def to_array(array: float | bool) -> Array:
     return _BACKEND_INSTANCE.to_array(array)
 
 
-def stack(arrays: Sequence[Array], dim: int = 0) -> Array:
+def stack(arrays: Sequence[Array], axis: int = 0) -> Array:
     """Stack a sequence of arrays along a new dimension."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.stack(arrays, dim)
+    return _BACKEND_INSTANCE.stack(arrays, axis)
 
 
 def reshape(array: Array, shape: tuple[int, ...]) -> Array:
@@ -140,11 +140,11 @@ def reshape(array: Array, shape: tuple[int, ...]) -> Array:
     return _BACKEND_INSTANCE.reshape(array, shape)
 
 
-def transpose(array: Array, dim: tuple[int, ...] | None = None) -> Array:
+def transpose(array: Array, axis: tuple[int, ...] | None = None) -> Array:
     """Transpose ``array``; ``None`` reverses dimensions."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.transpose(array, dim)
+    return _BACKEND_INSTANCE.transpose(array, axis)
 
 
 def shape(array: Array) -> tuple[int, ...]:
@@ -168,18 +168,18 @@ def ndim(array: Array) -> int:
     return _BACKEND_INSTANCE.ndim(array)
 
 
-def squeeze(array: Array, dim: int | tuple[int, ...] | None = None) -> Array:
+def squeeze(array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
     """Remove single-dimensional entries from ``array``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.squeeze(array, dim)
+    return _BACKEND_INSTANCE.squeeze(array, axis)
 
 
-def unsqueeze(array: Array, dim: int) -> Array:
-    """Insert a singleton dimension at ``dim``."""
+def unsqueeze(array: Array, axis: int) -> Array:
+    """Insert a singleton dimension at ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.unsqueeze(array, dim)
+    return _BACKEND_INSTANCE.unsqueeze(array, axis)
 
 
 def diag(array: Array) -> Array:
@@ -216,13 +216,13 @@ def matmul(array1: Array, array2: Array) -> Array:
 def norm(
     array: Array,
     p: float = 2,
-    dim: int | tuple[int, ...] | None = None,
+    axis: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
 ) -> Array:
     """Norm of ``array``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.norm(array, p, dim, keepdims)
+    return _BACKEND_INSTANCE.norm(array, p, axis, keepdims)
 
 
 # Math reductions
@@ -230,46 +230,46 @@ def norm(
 
 def sum(  # noqa: A001
     array: Array,
-    dim: int | tuple[int, ...] | None = None,
+    axis: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
 ) -> Array:
-    """Sum elements of ``array`` along ``dim``."""
+    """Sum elements of ``array`` along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.sum(array, dim, keepdims)
+    return _BACKEND_INSTANCE.sum(array, axis, keepdims)
 
 
 def mean(
     array: Array,
-    dim: int | tuple[int, ...] | None = None,
+    axis: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
 ) -> Array:
-    """Mean of ``array`` along ``dim``."""
+    """Mean of ``array`` along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.mean(array, dim, keepdims)
+    return _BACKEND_INSTANCE.mean(array, axis, keepdims)
 
 
 def min(  # noqa: A001
     array: Array,
-    dim: int | tuple[int, ...] | None = None,
+    axis: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
 ) -> Array:
-    """Minimum of ``array`` along ``dim``."""
+    """Minimum of ``array`` along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.min(array, dim, keepdims)
+    return _BACKEND_INSTANCE.min(array, axis, keepdims)
 
 
 def max(  # noqa: A001
     array: Array,
-    dim: int | tuple[int, ...] | None = None,
+    axis: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
 ) -> Array:
-    """Maximum of ``array`` along ``dim``."""
+    """Maximum of ``array`` along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.max(array, dim, keepdims)
+    return _BACKEND_INSTANCE.max(array, axis, keepdims)
 
 
 def any(array: Array) -> bool:  # noqa: A001
@@ -373,6 +373,61 @@ def sqrt(array: Array) -> Array:
     return _BACKEND_INSTANCE.sqrt(array)
 
 
+# Comparisons
+
+
+def eq(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise equality. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.eq(array1, array2)
+
+
+def ne(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise inequality. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.ne(array1, array2)
+
+
+def lt(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise less-than. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.lt(array1, array2)
+
+
+def le(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise less-than-or-equal. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.le(array1, array2)
+
+
+def gt(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise greater-than. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.gt(array1, array2)
+
+
+def ge(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise greater-than-or-equal. Returns an :class:`~decent_array.Array` of bools."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.ge(array1, array2)
+
+
+# Bitwise
+
+
+def bitwise_and(array1: Array | float, array2: Array | float) -> Array:
+    """Element-wise bitwise/logical AND."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.bitwise_and(array1, array2)
+
+
 # Operators
 
 
@@ -390,18 +445,18 @@ def maximum(array1: Array | float, array2: Array | float) -> Array:
     return _BACKEND_INSTANCE.maximum(array1, array2)
 
 
-def argmax(array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-    """Index of maximum value along ``dim``."""
+def argmax(array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+    """Index of maximum value along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.argmax(array, dim, keepdims)
+    return _BACKEND_INSTANCE.argmax(array, axis, keepdims)
 
 
-def argmin(array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
-    """Index of minimum value along ``dim``."""
+def argmin(array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+    """Index of minimum value along ``axis``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.argmin(array, dim, keepdims)
+    return _BACKEND_INSTANCE.argmin(array, axis, keepdims)
 
 
 def set_item(array: Array, key: ArrayKey, value: Array) -> None:

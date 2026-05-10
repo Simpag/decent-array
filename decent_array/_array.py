@@ -13,12 +13,17 @@ operator path.
 
 Hot-path notes:
 
-* ``__add__``/``__sub__``/``__mul__``/``__truediv__``/``__matmul__`` and the unary
-  ``__neg__``/``__abs__``/``__pow__`` are inlined: every supported framework's tensor
-  implements the equivalent operator natively with numpy-equivalent semantics, so
-  routing through the backend saves nothing.
+* ``__add__``/``__sub__``/``__mul__``/``__truediv__``/``__matmul__``, the unary
+  ``__neg__``/``__abs__``/``__pow__``, the comparisons ``__eq__``/``__ne__``/``__lt__``/
+  ``__le__``/``__gt__``/``__ge__`` and the bitwise ``__and__``/``__rand__`` are
+  inlined: every supported framework's tensor implements the equivalent operator
+  natively with numpy-equivalent semantics, so routing through the backend saves
+  nothing.
 * Operators that *do* go through the backend (in-place math, indexing, properties
   like ``shape``/``transpose``) read the cached ``_backend`` slot.
+* Overriding ``__eq__`` makes :class:`Array` unhashable (Python clears ``__hash__``
+  automatically). This matches numpy/torch/jax/tf, where element-wise equality is
+  more useful than identity-based hashing.
 """
 
 from __future__ import annotations
@@ -128,6 +133,61 @@ class Array:  # noqa: PLR0904
         # backend's ``pow``; routing through the backend would cost an extra method
         # call for no behavioral difference.
         return Array(self.value**other)
+
+    # Comparisons ----------------------------------------------------------
+    #
+    # Element-wise comparisons return an :class:`Array` of bools. The ``__eq__`` and
+    # ``__ne__`` parameters are typed ``object`` to match the LSP signature inherited
+    # from :class:`object`; the body still enforces the strict ``Array | scalar``
+    # contract via the underlying framework's operator (incompatible operands raise
+    # from the backend's native comparison, matching ``__add__``).
+    #
+    # Overriding ``__eq__`` makes instances unhashable; ``__hash__ = None`` makes that
+    # explicit (and silences the lint that flags the dropped ``__hash__``).
+
+    __hash__ = None  # type: ignore[assignment]
+
+    def __eq__(self, other: object) -> Array:  # type: ignore[override]
+        """Element-wise equality."""
+        return Array(self.value == (other.value if type(other) is Array else other))
+
+    def __ne__(self, other: object) -> Array:  # type: ignore[override]
+        """Element-wise inequality."""
+        return Array(self.value != (other.value if type(other) is Array else other))
+
+    def __lt__(self, other: Array | float) -> Array:
+        """Element-wise less-than."""
+        return Array(self.value < (other.value if type(other) is Array else other))
+
+    def __le__(self, other: Array | float) -> Array:
+        """Element-wise less-than-or-equal."""
+        return Array(self.value <= (other.value if type(other) is Array else other))
+
+    def __gt__(self, other: Array | float) -> Array:
+        """Element-wise greater-than."""
+        return Array(self.value > (other.value if type(other) is Array else other))
+
+    def __ge__(self, other: Array | float) -> Array:
+        """Element-wise greater-than-or-equal."""
+        return Array(self.value >= (other.value if type(other) is Array else other))
+
+    # Bitwise --------------------------------------------------------------
+    #
+    # Bitwise AND is only defined for integer/boolean dtypes. ``__and__``'s ``Array
+    # | int`` is a Union (mypyc keeps Union operands boxed, so a ``bool`` operand
+    # stays a ``bool`` and TF's strict dtype check accepts it). ``__rand__``'s
+    # operand is typed ``Any`` for the same reason: a single-primitive annotation
+    # like ``int`` causes mypyc to unbox a ``True`` to ``1`` before the call body,
+    # which fails TF's ``1 & bool_tensor`` rejection. Native operator semantics on
+    # the wrapped tensor enforce the actual dtype contract.
+
+    def __and__(self, other: Array | int) -> Array:
+        """Element-wise bitwise/logical AND."""
+        return Array(self.value & (other.value if type(other) is Array else other))
+
+    def __rand__(self, other: Any) -> Array:  # noqa: ANN401
+        """Element-wise bitwise/logical AND with the array on the right."""
+        return Array(other & self.value)
 
     # In-place arithmetic --------------------------------------------------
     #

@@ -96,16 +96,16 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
         with tf.device(self._native_device):
             return Array(tf.convert_to_tensor(array))
 
-    def stack(self, arrays: Sequence[Array], dim: int = 0) -> Array:
+    def stack(self, arrays: Sequence[Array], axis: int = 0) -> Array:
         if len(arrays) == 0:
             raise ValueError("Cannot stack an empty sequence of arrays.")
-        return Array(tf.stack([a.value for a in arrays], axis=dim))
+        return Array(tf.stack([a.value for a in arrays], axis=axis))
 
     def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
         return Array(tf.reshape(array.value, shape))
 
-    def transpose(self, array: Array, dim: tuple[int, ...] | None = None) -> Array:
-        return Array(tf.transpose(array.value, perm=dim))
+    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
+        return Array(tf.transpose(array.value, perm=axis))
 
     def shape(self, array: Array) -> tuple[int, ...]:
         return cast("tuple[int, ...]", tuple(array.value.shape))
@@ -116,11 +116,11 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
     def ndim(self, array: Array) -> int:
         return len(array.value.shape)
 
-    def squeeze(self, array: Array, dim: int | tuple[int, ...] | None = None) -> Array:
-        return Array(tf.squeeze(array.value, axis=dim))
+    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
+        return Array(tf.squeeze(array.value, axis=axis))
 
-    def unsqueeze(self, array: Array, dim: int) -> Array:
-        return Array(tf.expand_dims(array.value, axis=dim))
+    def unsqueeze(self, array: Array, axis: int) -> Array:
+        return Array(tf.expand_dims(array.value, axis=axis))
 
     def diag(self, array: Array) -> Array:
         v = array.value
@@ -151,28 +151,28 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
         self,
         array: Array,
         p: float = 2,
-        dim: int | tuple[int, ...] | None = None,
+        axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
         v = array.value
         # tf.norm defaults differ from np.linalg.norm on 2-D inputs (operator vs.
         # Frobenius); match numpy's flat default by reducing over both trailing axes.
-        axis = dim if dim is not None else (-2, -1) if v.ndim == 2 else None
+        axis = axis if axis is not None else (-2, -1) if v.ndim == 2 else None
         return Array(tf.norm(v, ord=p, axis=axis, keepdims=keepdims))
 
     # Math reductions
 
-    def sum(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(tf.reduce_sum(array.value, axis=dim, keepdims=keepdims))
+    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(tf.reduce_sum(array.value, axis=axis, keepdims=keepdims))
 
-    def mean(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(tf.reduce_mean(array.value, axis=dim, keepdims=keepdims))
+    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(tf.reduce_mean(array.value, axis=axis, keepdims=keepdims))
 
-    def min(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(tf.reduce_min(array.value, axis=dim, keepdims=keepdims))
+    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(tf.reduce_min(array.value, axis=axis, keepdims=keepdims))
 
-    def max(self, array: Array, dim: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(tf.reduce_max(array.value, axis=dim, keepdims=keepdims))
+    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(tf.reduce_max(array.value, axis=axis, keepdims=keepdims))
 
     def any(self, array: Array) -> bool:
         return bool(tf.reduce_any(tf.cast(array.value, tf.bool)).numpy())
@@ -224,6 +224,34 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
     def sqrt(self, array: Array) -> Array:
         return Array(tf.sqrt(array.value))
 
+    # Comparisons
+
+    def eq(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.equal(_unwrap(array1), _unwrap(array2)))
+
+    def ne(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.not_equal(_unwrap(array1), _unwrap(array2)))
+
+    def lt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.less(_unwrap(array1), _unwrap(array2)))
+
+    def le(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.less_equal(_unwrap(array1), _unwrap(array2)))
+
+    def gt(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.greater(_unwrap(array1), _unwrap(array2)))
+
+    def ge(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(tf.greater_equal(_unwrap(array1), _unwrap(array2)))
+
+    # Bitwise — TF's native ``&`` dispatches to ``tf.math.logical_and`` for bool
+    # tensors and ``tf.bitwise.bitwise_and`` for int tensors, matching numpy/torch/jax
+    # operator semantics. Calling either named function directly here would constrain
+    # us to one dtype family.
+
+    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
+        return Array(_unwrap(array1) & _unwrap(array2))
+
     # Operators
 
     def sign(self, array: Array) -> Array:
@@ -232,30 +260,30 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
     def maximum(self, array1: Array | float, array2: Array | float) -> Array:
         return Array(tf.maximum(_unwrap(array1), _unwrap(array2)))
 
-    def argmax(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
+    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             flat = tf.argmax(tf.reshape(v, [-1]), axis=0)
             if keepdims:
                 ndim = v.shape.ndims or 0
                 return Array(tf.reshape(flat, [1] * ndim))
             return Array(flat)
-        out = tf.argmax(v, axis=dim)
+        out = tf.argmax(v, axis=axis)
         if keepdims:
-            out = tf.expand_dims(out, axis=dim)
+            out = tf.expand_dims(out, axis=axis)
         return Array(out)
 
-    def argmin(self, array: Array, dim: int | None = None, keepdims: bool = False) -> Array:
+    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         v = array.value
-        if dim is None:
+        if axis is None:
             flat = tf.argmin(tf.reshape(v, [-1]), axis=0)
             if keepdims:
                 ndim = v.shape.ndims or 0
                 return Array(tf.reshape(flat, [1] * ndim))
             return Array(flat)
-        out = tf.argmin(v, axis=dim)
+        out = tf.argmin(v, axis=axis)
         if keepdims:
-            out = tf.expand_dims(out, axis=dim)
+            out = tf.expand_dims(out, axis=axis)
         return Array(out)
 
     def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
