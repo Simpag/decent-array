@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from decent_array.interoperability.backend_manager import reset_backends
+from decent_array.interoperability._backend_manager import reset_backends
 from decent_array.types import SupportedDevices, SupportedFrameworks
 
 if TYPE_CHECKING:
@@ -106,7 +106,7 @@ BACKEND_PARAMS = _backend_params()
 @pytest.fixture(params=BACKEND_PARAMS)
 def backend(request: FixtureRequest) -> Iterator[tuple[SupportedFrameworks, SupportedDevices]]:
     """Activate the (framework, device) backend for this test, then reset on teardown."""
-    from decent_array.interoperability.backend_manager import set_backend  # noqa: PLC0415
+    from decent_array.interoperability import set_backend  # noqa: PLC0415
 
     framework, device = request.param
     set_backend(framework, device)

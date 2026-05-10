@@ -1,4 +1,4 @@
-"""Tests for :mod:`decent_array.interoperability.backend_manager`."""
+"""Tests for :mod:`decent_array.interoperability._backend_manager`."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from decent_array.interoperability import backend_manager
-from decent_array.interoperability.abstracts import Backend
-from decent_array.interoperability.backend_manager import (
+from decent_array.interoperability import _backend_manager as backend_manager
+from decent_array.interoperability._abstracts import Backend
+from decent_array.interoperability._backend_manager import (
     _instantiate,
     _normalize,
     register_backend,
@@ -95,7 +95,7 @@ def test_register_backend_rejects_non_subclass() -> None:
     class NotABackend:
         pass
 
-    with pytest.raises(TypeError, match=r"subclass of _Backend"):
+    with pytest.raises(TypeError, match=r"subclass of Backend"):
         register_backend(SupportedFrameworks.NUMPY, NotABackend)  # type: ignore[arg-type]
 
 

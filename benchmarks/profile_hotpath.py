@@ -39,7 +39,7 @@ from decent_array import Array
 
 
 def _is_compiled() -> tuple[bool, str]:
-    module = importlib.import_module("decent_array.array")
+    module = importlib.import_module("decent_array._array")
     path = module.__file__ or "<unknown>"
     return path.endswith((".so", ".pyd")), path
 
