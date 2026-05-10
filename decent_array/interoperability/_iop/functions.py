@@ -1,13 +1,13 @@
 """
 Module-level interoperability functions.
 
-Each function delegates to the active backend cached in this module's ``_BACKEND``
-slot. The slot is rebound by :func:`decent_bench.utils.interoperability_2.set_backend`
-via :func:`_set_active_backend`. Calling any of these before ``set_backend`` raises
-:class:`RuntimeError` via the sentinel's ``__getattr__``.
+Each function delegates to the active backend cached in this module's ``_BACKEND_INSTANCE``
+slot. The slot is rebound by :func:`decent_array.interoperability.set_backend`.
+Calling any of these before ``set_backend`` raises
+:class:`RuntimeError`.
 
 When this module and ``Backend`` are mypyc-compiled in the same group,
-``_BACKEND.add(...)`` dispatches as a native compiled-to-compiled call — no Python
+``_BACKEND_INSTANCE.add(...)`` dispatches as a native compiled-to-compiled call — no Python
 attribute lookup, no bound-method allocation per call.
 """
 
@@ -117,6 +117,13 @@ def from_numpy(array: NDArray[Any]) -> Array:
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.from_numpy(array)
+
+
+def from_numpy_like(array: NDArray[Any], like: Array) -> Array:
+    """Convert a NumPy array to an :class:`~decent_array.Array` matching ``like``'s dtype and device."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.from_numpy_like(array, like)
 
 
 def to_array(array: float | bool) -> Array:

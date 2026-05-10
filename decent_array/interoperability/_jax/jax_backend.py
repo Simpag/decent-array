@@ -86,6 +86,10 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def from_numpy(self, array: NDArray[Any]) -> Array:
         return Array(jnp.array(array, device=self._native_device))
 
+    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+        v = like.value
+        return Array(jnp.asarray(array, dtype=v.dtype, device=v.device))
+
     def to_array(self, array: float | bool) -> Array:
         return Array(jnp.array(array, device=self._native_device))
 

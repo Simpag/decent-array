@@ -1,6 +1,6 @@
 Developer Guide
 ===============
-Want to contribute to decent-bench? That's great! This guide contains useful information
+Want to contribute to decent-array? That's great! This guide contains useful information
 about development tools, processes, and rules.
 
 
@@ -55,12 +55,12 @@ Tools can also be used directly (instead of via tox) after activating the dev en
     ruff check decent_array --fix                           # find and fix style issues
     ruff format decent_array                                # format code
     mypy decent_array --strict                              # find typing issues
-    pytest test                                             # run tests
+    pytest tests                                            # run tests
     sphinx-build -W -E -b html docs/source docs/build/html  # rebuild html doc files
 
 To verify that doc changes look good, use an html previewer such as
 `Live Preview <https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server>`_.
-If you are running :code:`pytest test` while using ``WSL`` on Windows and it starts to randomly fail (or if its really slow), restart your ``WSL`` instance.
+If you are running :code:`pytest tests` while using ``WSL`` on Windows and it starts to randomly fail (or if its really slow), restart your ``WSL`` instance.
 
 
 

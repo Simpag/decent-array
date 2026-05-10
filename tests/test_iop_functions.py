@@ -24,7 +24,7 @@ def test_zeros(backend: tuple) -> None:
 
 
 def test_zeros_like(backend: tuple) -> None:
-    src = iop.from_numpy(np.ones((2, 3)))
+    src = iop.from_numpy(np.ones((2, 3), dtype=np.float32))
     arr = iop.zeros_like(src)
     np.testing.assert_allclose(_np(arr), np.zeros((2, 3)))
 
@@ -35,7 +35,7 @@ def test_ones(backend: tuple) -> None:
 
 
 def test_ones_like(backend: tuple) -> None:
-    src = iop.from_numpy(np.zeros((2, 3)))
+    src = iop.from_numpy(np.zeros((2, 3), dtype=np.float32))
     arr = iop.ones_like(src)
     np.testing.assert_allclose(_np(arr), np.ones((2, 3)))
 
@@ -46,7 +46,7 @@ def test_eye(backend: tuple) -> None:
 
 
 def test_eye_like(backend: tuple) -> None:
-    src = iop.from_numpy(np.zeros((4, 4)))
+    src = iop.from_numpy(np.zeros((4, 4), dtype=np.float32))
     arr = iop.eye_like(src)
     np.testing.assert_allclose(_np(arr), np.eye(4))
 
@@ -68,7 +68,7 @@ def test_device_of(backend: tuple) -> None:
 
 
 def test_copy_independent(backend: tuple) -> None:
-    src = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    src = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     dst = iop.copy(src)
     np.testing.assert_allclose(_np(dst), [1.0, 2.0, 3.0])
     # Mutating the copy shouldn't affect the original.
@@ -77,16 +77,36 @@ def test_copy_independent(backend: tuple) -> None:
 
 
 def test_to_numpy(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     out = iop.to_numpy(arr)
     assert isinstance(out, np.ndarray)
     np.testing.assert_allclose(out, [1.0, 2.0, 3.0])
 
 
 def test_from_numpy_roundtrip(backend: tuple) -> None:
-    raw = np.array([[1.0, 2.0], [3.0, 4.0]])
+    raw = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
     arr = iop.from_numpy(raw)
     np.testing.assert_allclose(_np(arr), raw)
+
+
+def test_from_numpy_like_matches_dtype(backend: tuple) -> None:
+    # ``like`` is int32 so the resulting Array should be int32 even though the
+    # source numpy array is float32. (Avoids float64, which torch MPS rejects.)
+    like = iop.from_numpy(np.array([0, 0], dtype=np.int32))
+    raw = np.array([1.5, 2.5], dtype=np.float32)
+    arr = iop.from_numpy_like(raw, like)
+    out_np = _np(arr)
+    assert out_np.dtype == np.int32
+    np.testing.assert_array_equal(out_np, [1, 2])
+
+
+def test_from_numpy_like_matches_device(backend: tuple) -> None:
+    # ``like`` lives on whichever device the active backend uses; the result of
+    # from_numpy_like must report the same device.
+    like = iop.from_numpy(np.array([0.0, 0.0], dtype=np.float32))
+    raw = np.array([3.0, 4.0], dtype=np.float32)
+    arr = iop.from_numpy_like(raw, like)
+    assert iop.device_of(arr) == iop.device_of(like)
 
 
 def test_to_array_from_scalar(backend: tuple) -> None:
@@ -95,15 +115,15 @@ def test_to_array_from_scalar(backend: tuple) -> None:
 
 
 def test_stack(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0]))
-    b = iop.from_numpy(np.array([3.0, 4.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([3.0, 4.0], dtype=np.float32))
     arr = iop.stack([a, b])
     np.testing.assert_allclose(_np(arr), [[1.0, 2.0], [3.0, 4.0]])
 
 
 def test_stack_dim(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0]))
-    b = iop.from_numpy(np.array([3.0, 4.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([3.0, 4.0], dtype=np.float32))
     arr = iop.stack([a, b], axis=1)
     np.testing.assert_allclose(_np(arr), [[1.0, 3.0], [2.0, 4.0]])
 
@@ -120,7 +140,7 @@ def test_reshape(backend: tuple) -> None:
 
 
 def test_transpose_default(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float32))
     np.testing.assert_allclose(
         _np(iop.transpose(arr)), [[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]]
     )
@@ -133,43 +153,43 @@ def test_transpose_explicit_dim(backend: tuple) -> None:
 
 
 def test_shape_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((2, 3, 4)))
+    arr = iop.from_numpy(np.zeros((2, 3, 4), dtype=np.float32))
     assert iop.shape(arr) == (2, 3, 4)
 
 
 def test_size_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((2, 3, 4)))
+    arr = iop.from_numpy(np.zeros((2, 3, 4), dtype=np.float32))
     assert iop.size(arr) == 24
 
 
 def test_ndim_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((2, 3, 4)))
+    arr = iop.from_numpy(np.zeros((2, 3, 4), dtype=np.float32))
     assert iop.ndim(arr) == 3
 
 
 def test_squeeze_default(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((1, 3, 1)))
+    arr = iop.from_numpy(np.zeros((1, 3, 1), dtype=np.float32))
     assert iop.shape(iop.squeeze(arr)) == (3,)
 
 
 def test_squeeze_specific_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((1, 3, 1)))
+    arr = iop.from_numpy(np.zeros((1, 3, 1), dtype=np.float32))
     assert iop.shape(iop.squeeze(arr, axis=0)) == (3, 1)
 
 
 def test_unsqueeze(backend: tuple) -> None:
-    arr = iop.from_numpy(np.zeros((3,)))
+    arr = iop.from_numpy(np.zeros((3,), dtype=np.float32))
     assert iop.shape(iop.unsqueeze(arr, axis=0)) == (1, 3)
     assert iop.shape(iop.unsqueeze(arr, axis=1)) == (3, 1)
 
 
 def test_diag_from_vector(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.diag(arr)), np.diag([1.0, 2.0, 3.0]))
 
 
 def test_diag_from_matrix(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.diag(arr)), [1.0, 4.0])
 
 
@@ -198,30 +218,30 @@ def test_astype_to_bool(backend: tuple) -> None:
 
 
 def test_dot(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([4.0, 5.0, 6.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([4.0, 5.0, 6.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.dot(a, b)), 32.0)
 
 
 def test_matmul(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
-    b = iop.from_numpy(np.array([[5.0, 6.0], [7.0, 8.0]]))
-    expected = np.array([[19.0, 22.0], [43.0, 50.0]])
+    a = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
+    b = iop.from_numpy(np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32))
+    expected = np.array([[19.0, 22.0], [43.0, 50.0]], dtype=np.float32)
     np.testing.assert_allclose(_np(iop.matmul(a, b)), expected)
 
 
 def test_norm_default_l2(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, 4.0]))
+    arr = iop.from_numpy(np.array([3.0, 4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.norm(arr)), 5.0)
 
 
 def test_norm_p1(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, -4.0]))
+    arr = iop.from_numpy(np.array([3.0, -4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.norm(arr, p=1)), 7.0)
 
 
 def test_norm_dim_keepdims(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[3.0, 4.0], [6.0, 8.0]]))
+    arr = iop.from_numpy(np.array([[3.0, 4.0], [6.0, 8.0]], dtype=np.float32))
     out = iop.norm(arr, p=2, axis=1, keepdims=True)
     assert iop.shape(out) == (2, 1)
     np.testing.assert_allclose(_np(out).reshape(-1), [5.0, 10.0])
@@ -231,68 +251,68 @@ def test_norm_dim_keepdims(backend: tuple) -> None:
 
 
 def test_sum_all(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.sum(arr)), 10.0)
 
 
 def test_sum_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.sum(arr, axis=0)), [4.0, 6.0])
 
 
 def test_sum_dim_keepdims(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
     out = iop.sum(arr, axis=0, keepdims=True)
     assert iop.shape(out) == (1, 2)
 
 
 def test_mean_all(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.mean(arr)), 2.5)
 
 
 def test_mean_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.mean(arr, axis=1)), [1.5, 3.5])
 
 
 def test_min_all(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0]))
+    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.min(arr)), 1.0)
 
 
 def test_min_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.min(arr, axis=0)), [1.0, 2.0])
 
 
 def test_max_all(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0]))
+    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.max(arr)), 5.0)
 
 
 def test_max_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 5.0], [3.0, 2.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.max(arr, axis=0)), [3.0, 5.0])
 
 
 def test_any_true(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([0.0, 1.0, 0.0]))
+    arr = iop.from_numpy(np.array([0.0, 1.0, 0.0], dtype=np.float32))
     assert iop.any(arr) is True
 
 
 def test_any_false(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([0.0, 0.0, 0.0]))
+    arr = iop.from_numpy(np.array([0.0, 0.0, 0.0], dtype=np.float32))
     assert iop.any(arr) is False
 
 
 def test_all_true(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     assert iop.all(arr) is True
 
 
 def test_all_false(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 0.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 0.0, 3.0], dtype=np.float32))
     assert iop.all(arr) is False
 
 
@@ -300,36 +320,36 @@ def test_all_false(backend: tuple) -> None:
 
 
 def test_add_two_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0]))
-    b = iop.from_numpy(np.array([3.0, 4.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([3.0, 4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.add(a, b)), [4.0, 6.0])
 
 
 def test_add_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.add(a, 10.0)), [11.0, 12.0])
 
 
 def test_sub(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([5.0, 6.0]))
-    b = iop.from_numpy(np.array([1.0, 2.0]))
+    a = iop.from_numpy(np.array([5.0, 6.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.sub(a, b)), [4.0, 4.0])
 
 
 def test_mul(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([2.0, 3.0]))
-    b = iop.from_numpy(np.array([4.0, 5.0]))
+    a = iop.from_numpy(np.array([2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([4.0, 5.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.mul(a, b)), [8.0, 15.0])
 
 
 def test_div(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([8.0, 10.0]))
-    b = iop.from_numpy(np.array([2.0, 5.0]))
+    a = iop.from_numpy(np.array([8.0, 10.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([2.0, 5.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.div(a, b)), [4.0, 2.0])
 
 
 def test_iadd_func(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
     out = iop.iadd(a, 10.0)
     # Returned wrapper is the same instance.
     assert out is a
@@ -337,43 +357,43 @@ def test_iadd_func(backend: tuple) -> None:
 
 
 def test_isub_func(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([5.0, 6.0]))
+    a = iop.from_numpy(np.array([5.0, 6.0], dtype=np.float32))
     out = iop.isub(a, 1.0)
     assert out is a
     np.testing.assert_allclose(_np(a), [4.0, 5.0])
 
 
 def test_imul_func(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([2.0, 3.0]))
+    a = iop.from_numpy(np.array([2.0, 3.0], dtype=np.float32))
     out = iop.imul(a, 4.0)
     assert out is a
     np.testing.assert_allclose(_np(a), [8.0, 12.0])
 
 
 def test_idiv_func(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([8.0, 12.0]))
+    a = iop.from_numpy(np.array([8.0, 12.0], dtype=np.float32))
     out = iop.idiv(a, 4.0)
     assert out is a
     np.testing.assert_allclose(_np(a), [2.0, 3.0])
 
 
 def test_pow_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([2.0, 3.0, 4.0]))
+    arr = iop.from_numpy(np.array([2.0, 3.0, 4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.pow(arr, 2)), [4.0, 9.0, 16.0])
 
 
 def test_negative(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, -2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, -2.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.negative(arr)), [-1.0, 2.0, -3.0])
 
 
 def test_absolute(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, -2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, -2.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.absolute(arr)), [1.0, 2.0, 3.0])
 
 
 def test_sqrt(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 4.0, 9.0]))
+    arr = iop.from_numpy(np.array([1.0, 4.0, 9.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.sqrt(arr)), [1.0, 2.0, 3.0])
 
 
@@ -381,18 +401,18 @@ def test_sqrt(backend: tuple) -> None:
 
 
 def test_sign(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([-2.0, 0.0, 3.0]))
+    arr = iop.from_numpy(np.array([-2.0, 0.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.sign(arr)), [-1.0, 0.0, 1.0])
 
 
 def test_maximum_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
-    b = iop.from_numpy(np.array([4.0, 2.0, 6.0]))
+    a = iop.from_numpy(np.array([1.0, 5.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([4.0, 2.0, 6.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.maximum(a, b)), [4.0, 5.0, 6.0])
 
 
 def test_maximum_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 5.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.maximum(a, 4.0)), [4.0, 5.0, 4.0])
 
 
@@ -400,68 +420,68 @@ def test_maximum_array_and_scalar(backend: tuple) -> None:
 
 
 def test_eq_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.eq(a, b)), [True, False, True])
 
 
 def test_eq_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.eq(a, 2.0)), [False, True, False])
 
 
 def test_ne_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([1.0, 5.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([1.0, 5.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.ne(a, b)), [False, True, False])
 
 
 def test_ne_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.ne(a, 2.0)), [True, False, True])
 
 
 def test_lt_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.lt(a, b)), [True, False, False])
 
 
 def test_lt_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.lt(a, 2.5)), [True, True, False])
 
 
 def test_le_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.le(a, b)), [True, True, False])
 
 
 def test_le_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.le(a, 2.0)), [True, True, False])
 
 
 def test_gt_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.gt(a, b)), [False, False, True])
 
 
 def test_gt_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.gt(a, 1.5)), [False, True, True])
 
 
 def test_ge_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    b = iop.from_numpy(np.array([2.0, 2.0, 2.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    b = iop.from_numpy(np.array([2.0, 2.0, 2.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.ge(a, b)), [False, True, True])
 
 
 def test_ge_array_and_scalar(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_array_equal(_np(iop.ge(a, 2.0)), [False, True, True])
 
 
@@ -469,7 +489,7 @@ def test_ge_array_and_scalar(backend: tuple) -> None:
 
 
 def test_bitwise_and_bool_arrays(backend: tuple) -> None:
-    a = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0]))
+    a = iop.from_numpy(np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32))
     mask1 = iop.gt(a, 1.0)
     mask2 = iop.lt(a, 4.0)
     np.testing.assert_array_equal(_np(iop.bitwise_and(mask1, mask2)), [False, True, True, False])
@@ -484,40 +504,40 @@ def test_bitwise_and_int_arrays(backend: tuple) -> None:
 
 
 def test_argmax_default(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0]))
+    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.argmax(arr)), 5)
 
 
 def test_argmax_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.argmax(arr, axis=1)), [1, 0])
 
 
 def test_argmin_default(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0]))
+    arr = iop.from_numpy(np.array([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0], dtype=np.float32))
     # First occurrence of minimum is index 1.
     np.testing.assert_allclose(_np(iop.argmin(arr)), 1)
 
 
 def test_argmin_dim(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.argmin(arr, axis=1)), [0, 1])
 
 
 def test_argmax_keepdims(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]]))
+    arr = iop.from_numpy(np.array([[1.0, 5.0, 2.0], [4.0, 0.0, 3.0]], dtype=np.float32))
     out = iop.argmax(arr, axis=1, keepdims=True)
     assert iop.shape(out) == (2, 1)
 
 
 def test_set_item_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
-    iop.set_item(arr, 0, iop.from_numpy(np.array(99.0)))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    iop.set_item(arr, 0, iop.from_numpy(np.array(99.0, dtype=np.float32)))
     np.testing.assert_allclose(_np(arr), [99.0, 2.0, 3.0])
 
 
 def test_get_item_function(backend: tuple) -> None:
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.get_item(arr, 1)), 2.0)
 
 

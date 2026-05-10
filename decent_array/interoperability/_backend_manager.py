@@ -10,7 +10,9 @@ from ._abstracts import Backend
 
 _BACKEND_REGISTRY: dict[SupportedFrameworks, type[Backend]] = {}
 _BACKEND_INSTANCES: dict[SupportedFrameworks, Backend] = {}
-_ACTIVE_BACKEND: ContextVar[SupportedFrameworks | None] = ContextVar("decent_bench.iop2.active_backend", default=None)
+_ACTIVE_BACKEND: ContextVar[SupportedFrameworks | None] = ContextVar(
+    "decent_array.interoperability.active_backend", default=None
+)
 _BACKEND_LISTENERS: list[Callable[[Backend | None], None]] = []
 _BACKEND_INSTANCE: Backend | None = None
 

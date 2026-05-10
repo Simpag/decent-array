@@ -90,6 +90,10 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def from_numpy(self, array: NDArray[Any]) -> Array:
         return Array(torch.from_numpy(array).to(device=self._native_device))
 
+    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+        v = like.value
+        return Array(torch.from_numpy(array).to(dtype=v.dtype, device=v.device))
+
     def to_array(self, array: float | bool) -> Array:
         return Array(torch.tensor(array, device=self._native_device))
 

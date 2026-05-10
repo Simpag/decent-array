@@ -2,9 +2,9 @@
 Lightweight wrapper around backend-native arrays.
 
 The :class:`Array` class wraps a single value of the active backend's framework type.
-Under the single-active-backend invariant maintained by, every :class:`Array` at runtime
-holds a value from the same framework, so operators dispatch directly to the active
-backend without per-call isinstance dispatch.
+Under the single-active-backend invariant maintained by the backend manager, every
+:class:`Array` at runtime holds a value from the same framework, so operators dispatch
+directly to the active backend without per-call isinstance dispatch.
 
 Operator contract is *strict*: binary arithmetic and indexing accept either another
 :class:`Array` or a Python scalar (``int``/``float``). Pass other framework-native

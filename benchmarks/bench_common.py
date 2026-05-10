@@ -56,7 +56,7 @@ def activate_backend(name: str) -> None:
     ``decent_array`` enforces a single-active-backend invariant per execution context;
     swapping between frameworks within one process requires resetting first.
     """
-    from decent_array.interoperability.backend_manager import reset_backends, set_backend  # noqa: PLC0415
+    from decent_array.interoperability._backend_manager import reset_backends, set_backend  # noqa: PLC0415
 
     reset_backends()
     set_backend(name)
@@ -133,7 +133,7 @@ def parse_backends_arg() -> list[str] | None:
 
 def is_compiled() -> tuple[bool, str]:
     """Return ``(True, path)`` if the Array module loaded from a ``.so``/``.pyd``, else ``(False, .py path)``."""
-    module = importlib.import_module("decent_array.Array")
+    module = importlib.import_module("decent_array._array")
     path = module.__file__ or "<unknown>"
     return path.endswith((".so", ".pyd")), path
 

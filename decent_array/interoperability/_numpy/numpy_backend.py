@@ -86,6 +86,10 @@ class NumpyBackend(Backend):  # noqa: PLR0904
     def from_numpy(self, array: NDArray[Any]) -> Array:
         return Array(array)
 
+    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+        # NumPy has no device dimension, so only the dtype of ``like`` matters.
+        return Array(np.asarray(array, dtype=like.value.dtype))
+
     def to_array(self, array: float | bool) -> Array:
         return Array(np.array(array))
 

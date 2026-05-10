@@ -87,6 +87,10 @@ class Backend(ABC):  # noqa: PLR0904
         """Convert a NumPy array on the CPU to an :class:`Array` on this backend."""
 
     @abstractmethod
+    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+        """Convert a Numpy array to an :class:`Array` on this backend, matching shape and type of ``like``."""
+
+    @abstractmethod
     def to_array(self, array: float | bool) -> Array:
         """Convert a Python scalar to an :class:`Array` on this backend."""
 

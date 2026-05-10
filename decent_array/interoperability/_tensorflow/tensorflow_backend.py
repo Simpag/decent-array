@@ -91,6 +91,12 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
         with tf.device(self._native_device):
             return Array(tf.convert_to_tensor(array))
 
+    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+        """Create an :class:`Array` from a NumPy array, on ``like``'s device with ``like``'s dtype."""
+        v = like.value
+        with tf.device(v.device):
+            return Array(tf.convert_to_tensor(array, dtype=v.dtype))
+
     def to_array(self, array: float | bool) -> Array:
         """Convert a Python scalar to an :class:`Array` on this backend."""
         with tf.device(self._native_device):

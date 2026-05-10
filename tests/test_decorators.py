@@ -38,7 +38,7 @@ def test_unwraps_array_args(backend: tuple) -> None:
             seen.append(x)
             return x * 2
 
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     result = Impl().returns_array(arr)
     # The decorator should have unwrapped the Array to its underlying value.
     assert not isinstance(seen[0], Array)
@@ -57,7 +57,7 @@ def test_does_not_rewrap_when_return_not_array(backend: tuple) -> None:
             assert not isinstance(x, Array)
             return 42.0
 
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     result = Impl().returns_float(arr)
     assert isinstance(result, float)
     assert result == 42.0
@@ -71,8 +71,8 @@ def test_unwraps_kwargs(backend: tuple) -> None:
             assert not isinstance(scale, Array)
             return x * scale
 
-    arr = iop.from_numpy(np.array([1.0, 2.0]))
-    scale = iop.from_numpy(np.array([10.0, 100.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
+    scale = iop.from_numpy(np.array([10.0, 100.0], dtype=np.float32))
     result = Impl().takes_kwarg(arr, scale=scale)
     assert isinstance(result, Array)
     np.testing.assert_allclose(iop.to_numpy(result), [10.0, 200.0])
@@ -85,7 +85,7 @@ def test_passes_non_array_args_unchanged(backend: tuple) -> None:
             assert isinstance(n, int)
             return x * n
 
-    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
     result = Impl().passes_through_non_array(arr, 4)
     assert isinstance(result, Array)
     np.testing.assert_allclose(iop.to_numpy(result), [4.0, 8.0, 12.0])
@@ -99,7 +99,7 @@ def test_does_not_double_wrap_when_impl_returns_array(backend: tuple) -> None:
         def returns_array(self, x: Any) -> Array:
             return Array(x * 3)
 
-    arr = iop.from_numpy(np.array([1.0, 2.0]))
+    arr = iop.from_numpy(np.array([1.0, 2.0], dtype=np.float32))
     result = Impl().returns_array(arr)
     assert isinstance(result, Array)
     # If the wrapper double-wrapped, ``result.value`` would itself be an Array.

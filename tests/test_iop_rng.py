@@ -60,6 +60,10 @@ def test_get_seed_initially_none(backend: tuple) -> None:
     # Fresh activation via the fixture: nothing has called set_seed yet on this
     # coordinator instance, but the coordinator is process-singleton and may have
     # state from earlier tests. Call set_seed/then-clear to assert via reseed instead.
+    from decent_array.interoperability._iop.rng import _reset_rng  # noqa: PLC0415, PLC2701
+
+    _reset_rng()
+    assert iop.get_seed() is None
     iop.set_seed(0)
     assert iop.get_seed() == 0
 

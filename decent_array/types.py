@@ -13,13 +13,13 @@ if TYPE_CHECKING:
 
 ArrayLike: TypeAlias = Union["numpy.ndarray", "torch.Tensor", "tf.Tensor", "jax.Array"]  # noqa: UP040
 """
-Type alias for array-like types supported in decent-bench, including NumPy arrays,
+Type alias for array-like types supported in decent-array, including NumPy arrays,
 PyTorch tensors, TensorFlow tensors, and JAX arrays.
 """
 
 SupportedArrayTypes: TypeAlias = ArrayLike | float | int  # noqa: UP040
 """
-Type alias for supported types for optimization variables in decent-bench,
+Type alias for supported types for optimization variables in decent-array,
 including array-like types and scalars.
 """
 
@@ -33,7 +33,7 @@ Includes single indices, tuples of indices, slices, and tuples of slices.
 # Its important that the enum values correspond to the folder names of the backends,
 # since those are used for dynamic imports in _backend_manager.py
 class SupportedFrameworks(Enum):
-    """Enum for supported frameworks in decent-bench."""
+    """Enum for supported frameworks in decent-array."""
 
     NUMPY = "numpy"
     PYTORCH = "pytorch"
@@ -42,7 +42,7 @@ class SupportedFrameworks(Enum):
 
 
 class SupportedDevices(Enum):
-    """Enum for supported devices in decent-bench."""
+    """Enum for supported devices in decent-array."""
 
     CPU = "cpu"
     GPU = "gpu"

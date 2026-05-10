@@ -35,7 +35,7 @@ from bench_common import (
     time_us_safe,
 )
 
-import decent_array as iop
+import decent_array.interoperability as iop
 from decent_array import Array
 
 
@@ -43,6 +43,7 @@ def _native_ops(backend: str) -> dict[str, Callable[..., Any]]:
     """Return the native-framework equivalents of each ``iop.<fn>`` for ``backend``."""
     if backend == "numpy":
         import numpy as np  # noqa: PLC0415
+
         return {
             "add": np.add,
             "mul": np.multiply,
@@ -55,6 +56,7 @@ def _native_ops(backend: str) -> dict[str, Callable[..., Any]]:
         }
     if backend == "pytorch":
         import torch  # noqa: PLC0415
+
         return {
             "add": torch.add,
             "mul": torch.mul,
@@ -67,6 +69,7 @@ def _native_ops(backend: str) -> dict[str, Callable[..., Any]]:
         }
     if backend == "jax":
         import jax.numpy as jnp  # noqa: PLC0415
+
         return {
             "add": jnp.add,
             "mul": jnp.multiply,
@@ -79,6 +82,7 @@ def _native_ops(backend: str) -> dict[str, Callable[..., Any]]:
         }
     if backend == "tensorflow":
         import tensorflow as tf  # noqa: PLC0415
+
         return {
             "add": tf.add,
             "mul": tf.multiply,
@@ -103,14 +107,14 @@ def _bench_case(case: BackendCase) -> None:
 
         print_size_header(n)
         rows = (
-            ("add",  lambda a=a, b=b: native["add"](a, b),     lambda d_a=d_a, d_b=d_b: iop.add(d_a, d_b)),
-            ("mul",  lambda a=a, b=b: native["mul"](a, b),     lambda d_a=d_a, d_b=d_b: iop.mul(d_a, d_b)),
-            ("dot",  lambda a=a, b=b: native["dot"](a, b),     lambda d_a=d_a, d_b=d_b: iop.dot(d_a, d_b)),
-            ("sum",  lambda a=a: native["sum"](a),             lambda d_a=d_a: iop.sum(d_a)),
-            ("mean", lambda a=a: native["mean"](a),            lambda d_a=d_a: iop.mean(d_a)),
-            ("norm", lambda a=a: native["norm"](a),            lambda d_a=d_a: iop.norm(d_a)),
-            ("sqrt", lambda a=a: native["sqrt"](a),            lambda d_a=d_a: iop.sqrt(d_a)),
-            ("sign", lambda a=a: native["sign"](a),            lambda d_a=d_a: iop.sign(d_a)),
+            ("add", lambda a=a, b=b: native["add"](a, b), lambda d_a=d_a, d_b=d_b: iop.add(d_a, d_b)),
+            ("mul", lambda a=a, b=b: native["mul"](a, b), lambda d_a=d_a, d_b=d_b: iop.mul(d_a, d_b)),
+            ("dot", lambda a=a, b=b: native["dot"](a, b), lambda d_a=d_a, d_b=d_b: iop.dot(d_a, d_b)),
+            ("sum", lambda a=a: native["sum"](a), lambda d_a=d_a: iop.sum(d_a)),
+            ("mean", lambda a=a: native["mean"](a), lambda d_a=d_a: iop.mean(d_a)),
+            ("norm", lambda a=a: native["norm"](a), lambda d_a=d_a: iop.norm(d_a)),
+            ("sqrt", lambda a=a: native["sqrt"](a), lambda d_a=d_a: iop.sqrt(d_a)),
+            ("sign", lambda a=a: native["sign"](a), lambda d_a=d_a: iop.sign(d_a)),
         )
         for op, native_fn, wrapped_fn in rows:
             n_us = time_us_safe(case, native_fn)

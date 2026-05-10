@@ -135,6 +135,12 @@ def _set_seed_without_global(seed: int) -> None:
     _COORDINATOR.set_seed(seed, set_global_seed=False)
 
 
+def _reset_rng() -> None:
+    """Reset RNG state to a fresh state."""
+    global _COORDINATOR  # noqa: PLW0603
+    _COORDINATOR = _RngCoordinator()
+
+
 def get_seed() -> int | None:
     """Return the most recently set global seed, or ``None`` if unset."""
     return _COORDINATOR.get_seed()
