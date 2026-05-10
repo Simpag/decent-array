@@ -3,7 +3,7 @@ Decorator that bridges :class:`Cost` superclass signatures with framework-native
 
 Single-backend semantics make this decorator dramatically simpler than the v1 version: no
 framework dispatch, no cross-framework conversion, no ``to_array_like`` magic — just
-unwrap input :class:`Array` values to their native form, call the subclass method, and
+unwrap input :class:`~decent_array.Array` values to their native form, call the subclass method, and
 re-wrap the return if the superclass declared ``-> Array``.
 """
 
@@ -18,9 +18,9 @@ def autodecorate_cost_method[T: Callable[..., Any]](superclass_method: T) -> Cal
     """
     Decorate a Cost method override so its body can use raw framework arrays.
 
-    Each :class:`Array` argument is unwrapped to its underlying value before the call.
-    If the *superclass* method's return annotation is :class:`Array`, the return value
-    is re-wrapped in :class:`Array` (unless already wrapped). All other arguments and
+    Each :class:`~decent_array.Array` argument is unwrapped to its underlying value before the call.
+    If the *superclass* method's return annotation is :class:`~decent_array.Array`, the return value
+    is re-wrapped in :class:`~decent_array.Array` (unless already wrapped). All other arguments and
     return values pass through unchanged.
 
     Args:
@@ -28,13 +28,15 @@ def autodecorate_cost_method[T: Callable[..., Any]](superclass_method: T) -> Cal
             Used solely to look up the declared return type at decoration time.
 
     Example:
-        class LinearRegressionCost(EmpiricalRiskCost):
-            @autodecorate_cost_method(EmpiricalRiskCost.gradient)
-            def gradient(self, x: NDArray[float64], indices: ...) -> NDArray[float64]:
-                # ``x`` arrives as a numpy ndarray; the wrapper unwraps the caller's Array.
-                return self.A.T @ (self.A @ x - self.b) / self.n_samples
-                # Return value is wrapped back into Array because EmpiricalRiskCost.gradient
-                # is annotated ``-> Array``.
+        .. code-block:: python
+
+            class LinearRegressionCost(EmpiricalRiskCost):
+                @autodecorate_cost_method(EmpiricalRiskCost.gradient)
+                def gradient(self, x: NDArray[float64], indices: ...) -> NDArray[float64]:
+                    # ``x`` arrives as a numpy ndarray; the wrapper unwraps the caller's Array.
+                    return self.A.T @ (self.A @ x - self.b) / self.n_samples
+                    # Return value is wrapped back into Array because EmpiricalRiskCost.gradient
+                    # is annotated ``-> Array``.
 
     """
     from decent_array.array import Array  # noqa: PLC0415

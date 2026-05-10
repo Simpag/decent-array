@@ -20,21 +20,21 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING, Any
 
-from decent_array.interoperability.backend_manager import _instantiate, register_backend_listener
+from decent_array.interoperability._backend_manager import _instantiate, register_backend_listener
 from decent_array.types import SupportedDevices, SupportedFrameworks
 
 if TYPE_CHECKING:
     from decent_array.array import Array
-    from decent_array.interoperability.abstracts import _Backend
+    from decent_array.interoperability._abstracts import Backend
 
 
 _NUMPY_STATE_KEY = "__numpy_rng_state__"
 _PYTHON_RANDOM_KEY = "__python_random_state__"
-_BACKEND_INSTANCE: _Backend | None = None
+_BACKEND_INSTANCE: Backend | None = None
 _error = RuntimeError("No backend active: call 'set_backend' with a supported framework to activate one.")
 
 
-def _update_backend(backend: _Backend | None) -> None:
+def _update_backend(backend: Backend | None) -> None:
     global _BACKEND_INSTANCE  # noqa: PLW0603
     _BACKEND_INSTANCE = backend
 
@@ -114,7 +114,7 @@ class _RngCoordinator:
                 numpy_backend.set_rng_state(numpy_state)
         active.set_rng_state(state)
 
-    def _numpy_backend(self) -> _Backend:
+    def _numpy_backend(self) -> Backend:
         return _instantiate(SupportedFrameworks.NUMPY, SupportedDevices.CPU)
 
 

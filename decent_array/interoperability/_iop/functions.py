@@ -6,7 +6,7 @@ slot. The slot is rebound by :func:`decent_bench.utils.interoperability_2.set_ba
 via :func:`_set_active_backend`. Calling any of these before ``set_backend`` raises
 :class:`RuntimeError` via the sentinel's ``__getattr__``.
 
-When this module and ``_Backend`` are mypyc-compiled in the same group,
+When this module and ``Backend`` are mypyc-compiled in the same group,
 ``_BACKEND.add(...)`` dispatches as a native compiled-to-compiled call — no Python
 attribute lookup, no bound-method allocation per call.
 """
@@ -16,20 +16,20 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from decent_array.interoperability.backend_manager import register_backend_listener
+from decent_array.interoperability._backend_manager import register_backend_listener
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from decent_array.array import Array
-    from decent_array.interoperability.abstracts import _Backend
+    from decent_array.interoperability._abstracts import Backend
     from decent_array.types import ArrayKey, SupportedDevices
 
-_BACKEND_INSTANCE: _Backend | None = None
+_BACKEND_INSTANCE: Backend | None = None
 _error = RuntimeError("No backend active: call 'set_backend' with a supported framework to activate one.")
 
 
-def _update_backend(backend: _Backend | None) -> None:
+def _update_backend(backend: Backend | None) -> None:
     global _BACKEND_INSTANCE  # noqa: PLW0603
     _BACKEND_INSTANCE = backend
 
@@ -82,14 +82,14 @@ def eye_like(array: Array) -> Array:
 
 
 def device_to_native(device: SupportedDevices) -> Any:  # noqa: ANN401
-    """Convert :class:`SupportedDevices` to the active backend's native device."""
+    """Convert :class:`~decent_array.types.SupportedDevices` to the active backend's native device."""
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.device_to_native(device)
 
 
 def device_of(array: Array) -> SupportedDevices:
-    """Return the :class:`SupportedDevices` of ``array``."""
+    """Return the :class:`~decent_array.types.SupportedDevices` of ``array``."""
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.device_of(array)
@@ -113,14 +113,14 @@ def to_numpy(array: Array) -> NDArray[Any]:
 
 
 def from_numpy(array: NDArray[Any]) -> Array:
-    """Convert a NumPy array on CPU to an :class:`Array` on the active backend."""
+    """Convert a NumPy array on CPU to an :class:`~decent_array.Array` on the active backend."""
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.from_numpy(array)
 
 
 def to_array(array: float | bool) -> Array:
-    """Convert a Python scalar to an :class:`Array` on the active backend."""
+    """Convert a Python scalar to an :class:`~decent_array.Array` on the active backend."""
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.to_array(array)

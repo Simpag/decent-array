@@ -2,14 +2,13 @@
 Lightweight wrapper around backend-native arrays.
 
 The :class:`Array` class wraps a single value of the active backend's framework type.
-Under the single-active-backend invariant maintained by
-:mod:`decent_array.interoperability.backend_manager`, every :class:`Array` at runtime
+Under the single-active-backend invariant maintained by, every :class:`Array` at runtime
 holds a value from the same framework, so operators dispatch directly to the active
 backend without per-call isinstance dispatch.
 
 Operator contract is *strict*: binary arithmetic and indexing accept either another
 :class:`Array` or a Python scalar (``int``/``float``). Pass other framework-native
-arrays through :func:`decent_array.iop.get_item` and friends, not through the
+arrays through :func:`decent_array.interoperability.get_item` and friends, not through the
 operator path.
 
 Hot-path notes:
@@ -26,17 +25,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Self
 
-from decent_array.interoperability.backend_manager import register_backend_listener
+from decent_array.interoperability._backend_manager import register_backend_listener
 
 if TYPE_CHECKING:
-    from decent_array.interoperability.abstracts import _Backend
-    from decent_array.types import ArrayKey
+    from decent_array.interoperability._abstracts import Backend
+    from decent_array.types import ArrayKey, SupportedArrayTypes
 
 
-_BACKEND_INSTANCE: _Backend | None = None
+_BACKEND_INSTANCE: Backend | None = None
 
 
-def _update_backend(backend: _Backend | None) -> None:
+def _update_backend(backend: Backend | None) -> None:
     global _BACKEND_INSTANCE  # noqa: PLW0603
     _BACKEND_INSTANCE = backend
 
@@ -55,7 +54,7 @@ class Array:  # noqa: PLR0904
 
     __slots__ = ("_backend", "value")
 
-    def __init__(self, value: Any) -> None:  # noqa: ANN401
+    def __init__(self, value: SupportedArrayTypes) -> None:
         """
         Wrap ``value`` in an :class:`Array`.
 
@@ -79,7 +78,7 @@ class Array:  # noqa: PLR0904
             )
 
         self.value: Any = value
-        self._backend: _Backend = _BACKEND_INSTANCE
+        self._backend: Backend = _BACKEND_INSTANCE
 
     # Binary arithmetic ----------------------------------------------------
 

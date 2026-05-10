@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from decent_array.interoperability import backend_manager
-from decent_array.interoperability.abstracts import _Backend
+from decent_array.interoperability.abstracts import Backend
 from decent_array.interoperability.backend_manager import (
     _instantiate,
     _normalize,
@@ -117,34 +117,34 @@ def test_register_backend_replaces_cached_instance() -> None:
 
 
 def test_listener_called_on_activation() -> None:
-    received: list[_Backend | None] = []
+    received: list[Backend | None] = []
 
-    def listener(backend: _Backend | None) -> None:
+    def listener(backend: Backend | None) -> None:
         received.append(backend)
 
     register_backend_listener(listener)
     set_backend("numpy")
     assert len(received) == 1
-    assert isinstance(received[0], _Backend)
+    assert isinstance(received[0], Backend)
 
 
 def test_listener_called_immediately_when_backend_already_active() -> None:
     set_backend("numpy")
-    received: list[_Backend | None] = []
+    received: list[Backend | None] = []
 
-    def listener(backend: _Backend | None) -> None:
+    def listener(backend: Backend | None) -> None:
         received.append(backend)
 
     register_backend_listener(listener)
     assert len(received) == 1
-    assert isinstance(received[0], _Backend)
+    assert isinstance(received[0], Backend)
 
 
 def test_listener_called_with_none_on_reset() -> None:
     set_backend("numpy")
-    received: list[_Backend | None] = []
+    received: list[Backend | None] = []
 
-    def listener(backend: _Backend | None) -> None:
+    def listener(backend: Backend | None) -> None:
         received.append(backend)
 
     register_backend_listener(listener)

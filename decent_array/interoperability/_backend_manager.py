@@ -6,13 +6,13 @@ from contextvars import ContextVar
 
 from decent_array.types import SupportedDevices, SupportedFrameworks
 
-from .abstracts import _Backend
+from ._abstracts import Backend
 
-_BACKEND_REGISTRY: dict[SupportedFrameworks, type[_Backend]] = {}
-_BACKEND_INSTANCES: dict[SupportedFrameworks, _Backend] = {}
+_BACKEND_REGISTRY: dict[SupportedFrameworks, type[Backend]] = {}
+_BACKEND_INSTANCES: dict[SupportedFrameworks, Backend] = {}
 _ACTIVE_BACKEND: ContextVar[SupportedFrameworks | None] = ContextVar("decent_bench.iop2.active_backend", default=None)
-_BACKEND_LISTENERS: list[Callable[[_Backend | None], None]] = []
-_BACKEND_INSTANCE: _Backend | None = None
+_BACKEND_LISTENERS: list[Callable[[Backend | None], None]] = []
+_BACKEND_INSTANCE: Backend | None = None
 
 
 def set_backend(
@@ -28,22 +28,20 @@ def set_backend(
     skip framework dispatch and isinstance checks, and lets backends construct array
     creation routines bound to a specific accelerator.
 
-    Backend modules are auto-imported on demand: the first call to ``set_backend("pytorch")``
-    triggers import of ``decent_bench.utils.interoperability_2._pytorch``, whose ``__init__``
-    is expected to register the backend via :func:`register_backend`.
+    Backend modules are auto-imported on demand.
 
     Args:
-        backend: A :class:`SupportedFrameworks` value, its canonical string (e.g.
+        backend: A :class:`~decent_array.types.SupportedFrameworks` value, its canonical string (e.g.
             ``"numpy"``, ``"pytorch"``), or any alias declared by the backend at
             registration time. Aliases are only resolvable after the backend module has
             been loaded; pass the canonical name on the first call to trigger autoload.
-        device: Target accelerator. Accepts a :class:`SupportedDevices` value or its
+        device: Target accelerator. Accepts a :class:`~decent_array.types.SupportedDevices` value or its
             string equivalent (``"cpu"``, ``"gpu"``, ``"mps"``). Defaults to CPU. The
             backend's array-creation methods produce arrays on this device by default.
 
     Note:
         Raises :class:`ImportError` if the backend module cannot be imported (e.g. due to
-        a missing optional dependency); the failure originates from :func:`_auto_import`.
+        a missing optional dependency).
 
     Raises:
         RuntimeError: If a different backend (or the same backend with a different device)
@@ -75,7 +73,7 @@ def set_backend(
             listener(_BACKEND_INSTANCE)
 
 
-def register_backend_listener(listener: Callable[[_Backend | None], None]) -> None:
+def register_backend_listener(listener: Callable[[Backend | None], None]) -> None:
     """
     Register a callback to be invoked on backend activation.
 
@@ -83,7 +81,7 @@ def register_backend_listener(listener: Callable[[_Backend | None], None]) -> No
     is already active, the callback is invoked immediately with the current backend.
 
     Args:
-        listener: A callable that accepts a single :class:`_Backend` instance argument.
+        listener: A callable that accepts a single :class:`Backend` instance argument.
 
     """
     _BACKEND_LISTENERS.append(listener)
@@ -93,7 +91,7 @@ def register_backend_listener(listener: Callable[[_Backend | None], None]) -> No
 
 def register_backend(
     backend: SupportedFrameworks,
-    cls: type[_Backend],
+    cls: type[Backend],
 ) -> None:
     """
     Register a backend class under a :class:`SupportedFrameworks` value.
@@ -110,14 +108,14 @@ def register_backend(
 
     Args:
         backend: Canonical backend identifier.
-        cls: A concrete subclass of :class:`_Backend`.
+        cls: A concrete subclass of :class:`Backend`.
 
     Raises:
-        TypeError: If ``cls`` is not a subclass of :class:`_Backend`.
+        TypeError: If ``cls`` is not a subclass of :class:`Backend`.
 
     """
-    if not issubclass(cls, _Backend):
-        raise TypeError(f"Registered backend must be a subclass of _Backend, got {cls}")
+    if not issubclass(cls, Backend):
+        raise TypeError(f"Registered backend must be a subclass of Backend, got {cls}")
     _BACKEND_REGISTRY[backend] = cls
     _BACKEND_INSTANCES.pop(backend, None)
 
@@ -147,7 +145,7 @@ def _normalize(backend: SupportedFrameworks | str) -> SupportedFrameworks:
         raise KeyError(f"Unknown backend '{backend}'. Valid backends: {valid}.") from exc
 
 
-def _instantiate(backend: SupportedFrameworks, device: SupportedDevices) -> _Backend:
+def _instantiate(backend: SupportedFrameworks, device: SupportedDevices) -> Backend:
     if backend in _BACKEND_INSTANCES:
         return _BACKEND_INSTANCES[backend]
 

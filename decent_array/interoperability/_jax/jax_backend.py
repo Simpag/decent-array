@@ -20,8 +20,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from decent_array.array import Array
-from decent_array.interoperability.abstracts import _Backend
-from decent_array.interoperability.backend_manager import register_backend
+from decent_array.interoperability._abstracts import Backend
+from decent_array.interoperability._backend_manager import register_backend
 from decent_array.types import ArrayKey, SupportedDevices, SupportedFrameworks
 
 
@@ -30,8 +30,8 @@ def _unwrap(array: Any) -> Any:  # noqa: ANN401
     return array.value if type(array) is Array else array
 
 
-class JaxBackend(_Backend):  # noqa: PLR0904
-    """JAX implementation of :class:`_Backend`."""
+class JaxBackend(Backend):  # noqa: PLR0904
+    """JAX implementation of :class:`Backend`."""
 
     def __init__(self, device: SupportedDevices = SupportedDevices.CPU) -> None:
         super().__init__(device)

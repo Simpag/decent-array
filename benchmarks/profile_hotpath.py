@@ -34,7 +34,7 @@ from io import StringIO
 
 import numpy as np
 
-import decent_array as iop
+import decent_array.interoperability as iop
 from decent_array import Array
 
 

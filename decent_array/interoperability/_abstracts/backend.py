@@ -1,5 +1,5 @@
 """
-Abstract :class:`_Backend` contract.
+Abstract :class:`Backend` contract.
 
 All abstract methods live in this single class rather than across six mixin ABCs. The
 flat layout is mypyc-compatible: when this module is included in the same compilation
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from decent_array.types import ArrayKey
 
 
-class _Backend(ABC):  # noqa: PLR0904
+class Backend(ABC):  # noqa: PLR0904
     """
     Abstract base class for a backend.
 
