@@ -116,6 +116,23 @@ def test_derive_seed_returns_int_in_range(backend: tuple) -> None:
     assert 0 <= seed < 2**32
 
 
+# get_numpy_rng ---------------------------------------------------------
+
+
+def test_get_numpy_rng_returns_generator(backend: tuple) -> None:
+    iop.set_seed(42)
+    rng = iop.get_numpy_rng()
+    assert isinstance(rng, np.random.Generator)
+
+
+def test_get_numpy_rng_is_seeded(backend: tuple) -> None:
+    iop.set_seed(42)
+    first = iop.get_numpy_rng().standard_normal(4)
+    iop.set_seed(42)
+    second = iop.get_numpy_rng().standard_normal(4)
+    np.testing.assert_array_equal(first, second)
+
+
 # Distribution shape checks ---------------------------------------------
 
 

@@ -8,7 +8,6 @@ With Decent-Array, you can write code that is portable and optimized for perform
 .. toctree::
    :maxdepth: 1
 
-   background
    user
    API Reference <api/decent_array>
    developer

@@ -1,11 +1,11 @@
 """
 Abstract :class:`Backend` contract.
 
-All abstract methods live in this single class rather than across six mixin ABCs. The
-flat layout is mypyc-compatible: when this module is included in the same compilation
-group as the concrete backends, ``_BACKEND.add(self, other)`` becomes a native
-compiled-to-compiled call (no Python attribute lookup, no bound-method allocation),
-which removes the need for a ``raw_ops`` escape hatch on the hot path.
+All abstract methods live in this single class. The flat layout is mypyc-compatible:
+when this module is included in the same compilation group as the concrete backends,
+``_BACKEND.add(self, other)`` becomes a native compiled-to-compiled call (no Python
+attribute lookup, no bound-method allocation), which removes the need for a ``raw_ops``
+escape hatch on the hot path.
 
 Section dividers in this file group related operations the way the legacy split files
 did (creation, manipulation, linalg, math, operators, RNG); the only thing that
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from decent_array import Array
-    from decent_array.types import ArrayKey
+    from decent_array.types import ArrayKey, DTypes, SupportedArrayTypes
 
 
 class Backend(ABC):  # noqa: PLR0904
@@ -41,57 +41,53 @@ class Backend(ABC):  # noqa: PLR0904
     # Array creation ------------------------------------------------------
 
     @abstractmethod
-    def zeros(self, shape: tuple[int, ...]) -> Array:
+    def zeros(self, shape: int | tuple[int, ...]) -> Array:
         """Create an array of zeros with the given shape."""
 
     @abstractmethod
-    def zeros_like(self, array: Array) -> Array:
-        """Create an array of zeros matching the shape and type of ``array``."""
+    def zeros_like(self, x: Array) -> Array:
+        """Create an array of zeros matching the shape and type of ``x``."""
 
     @abstractmethod
-    def ones(self, shape: tuple[int, ...]) -> Array:
+    def ones(self, shape: int | tuple[int, ...]) -> Array:
         """Create an array of ones with the given shape."""
 
     @abstractmethod
-    def ones_like(self, array: Array) -> Array:
-        """Create an array of ones matching the shape and type of ``array``."""
+    def ones_like(self, x: Array) -> Array:
+        """Create an array of ones matching the shape and type of ``x``."""
 
     @abstractmethod
     def eye(self, n: int) -> Array:
         """Create an ``n x n`` identity matrix."""
 
     @abstractmethod
-    def eye_like(self, array: Array) -> Array:
-        """Create an identity matrix matching the trailing two dims of ``array``."""
-
-    @abstractmethod
     def device_to_native(self, device: SupportedDevices) -> Any:  # noqa: ANN401
         """Convert :class:`SupportedDevices` to the backend's native device representation."""
 
     @abstractmethod
-    def device_of(self, array: Array) -> SupportedDevices:
+    def device_of(self, x: Array) -> SupportedDevices:
         """Return the :class:`SupportedDevices` of the given array."""
 
     # Array manipulation --------------------------------------------------
 
     @abstractmethod
-    def copy(self, array: Array) -> Array:
-        """Return a copy of ``array``."""
+    def copy(self, x: Array) -> Array:
+        """Return a copy of ``x``."""
 
     @abstractmethod
-    def to_numpy(self, array: Array) -> NDArray[Any]:
-        """Convert ``array`` to a NumPy array on the CPU."""
+    def to_numpy(self, x: SupportedArrayTypes | Array) -> NDArray[Any]:
+        """Convert ``x`` to a NumPy array on the CPU."""
 
     @abstractmethod
-    def from_numpy(self, array: NDArray[Any]) -> Array:
+    def from_numpy(self, x: NDArray[Any]) -> Array:
         """Convert a NumPy array on the CPU to an :class:`Array` on this backend."""
 
     @abstractmethod
-    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+    def from_numpy_like(self, x: NDArray[Any], like: Array) -> Array:
         """Convert a Numpy array to an :class:`Array` on this backend, matching shape and type of ``like``."""
 
     @abstractmethod
-    def to_array(self, array: float | bool) -> Array:
+    def asarray(self, x: bool | int | float | complex) -> Array:
         """Convert a Python scalar to an :class:`Array` on this backend."""
 
     @abstractmethod
@@ -99,163 +95,163 @@ class Backend(ABC):  # noqa: PLR0904
         """Stack a sequence of arrays along a new dimension."""
 
     @abstractmethod
-    def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
-        """Reshape ``array`` to ``shape``."""
+    def reshape(self, x: Array, shape: tuple[int, ...]) -> Array:
+        """Reshape ``x`` to ``shape``."""
 
     @abstractmethod
-    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
-        """Transpose ``array``; ``None`` reverses the dimensions."""
+    def transpose(self, x: Array, axis: tuple[int, ...] | None = None) -> Array:
+        """Transpose ``x``; ``None`` reverses the dimensions."""
 
     @abstractmethod
-    def shape(self, array: Array) -> tuple[int, ...]:
-        """Return the shape of ``array``."""
+    def shape(self, x: Array) -> tuple[int, ...]:
+        """Return the shape of ``x``."""
 
     @abstractmethod
-    def size(self, array: Array) -> int:
-        """Return the total number of elements in ``array``."""
+    def size(self, x: Array) -> int:
+        """Return the total number of elements in ``x``."""
 
     @abstractmethod
-    def ndim(self, array: Array) -> int:
-        """Return the number of dimensions of ``array``."""
+    def ndim(self, x: Array) -> int:
+        """Return the number of dimensions of ``x``."""
 
     @abstractmethod
-    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
-        """Remove single-dimensional entries from ``array``."""
+    def squeeze(self, x: Array, axis: int | tuple[int, ...] | None = None) -> Array:
+        """Remove single-dimensional entries from ``x``."""
 
     @abstractmethod
-    def unsqueeze(self, array: Array, axis: int) -> Array:
+    def unsqueeze(self, x: Array, axis: int) -> Array:
         """Insert a singleton dimension at ``axis``."""
 
     @abstractmethod
-    def diag(self, array: Array) -> Array:
+    def diag(self, x: Array) -> Array:
         """Diagonal: build from a vector or extract from a matrix."""
 
     @abstractmethod
-    def astype(self, array: Array, dtype: type[float | int | bool]) -> float | int | bool:
-        """Cast a single-element ``array`` to a Python scalar of ``dtype``."""
+    def astype(self, x: Array, dtype: DTypes) -> Array:
+        """Cast ``x`` to a different dtype."""
 
     # Linalg --------------------------------------------------------------
 
     @abstractmethod
-    def dot(self, array1: Array, array2: Array) -> Array:
+    def dot(self, x1: Array, x2: Array) -> Array:
         """Dot product of two arrays."""
 
     @abstractmethod
-    def matmul(self, array1: Array, array2: Array) -> Array:
+    def matmul(self, x1: Array, x2: Array) -> Array:
         """Matrix multiplication of two arrays."""
 
     @abstractmethod
-    def norm(
+    def vector_norm(
         self,
-        array: Array,
+        x: Array,
         p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
-        """Compute the norm of ``array``."""
+        """Compute the norm of ``x``."""
 
     # Math reductions -----------------------------------------------------
 
     @abstractmethod
-    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        """Sum elements of ``array`` along ``axis``."""
+    def sum(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        """Sum elements of ``x`` along ``axis``."""
 
     @abstractmethod
-    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        """Mean of ``array`` along ``axis``."""
+    def mean(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        """Mean of ``x`` along ``axis``."""
 
     @abstractmethod
-    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        """Minimum of ``array`` along ``axis``."""
+    def min(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        """Minimum of ``x`` along ``axis``."""
 
     @abstractmethod
-    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        """Maximum of ``array`` along ``axis``."""
+    def max(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        """Maximum of ``x`` along ``axis``."""
 
     @abstractmethod
-    def any(self, array: Array) -> bool:
-        """Return True if any element of ``array`` is truthy."""
+    def any(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        """Return True if any element of ``x`` is truthy."""
 
     @abstractmethod
-    def all(self, array: Array) -> bool:
-        """Return True if all elements of ``array`` are truthy."""
+    def all(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        """Return True if all elements of ``x`` are truthy."""
 
     # Math elementwise — both operands may be Array or scalar (operator dunders pass
     # either). ``Array | float`` covers both because PEP 484's numeric tower implicitly
     # admits ``int``.
 
     @abstractmethod
-    def add(self, array1: Array | float, array2: Array | float) -> Array:
+    def add(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise addition."""
 
     @abstractmethod
-    def iadd[T: Array](self, array1: T, array2: Array | float) -> T:
+    def iadd[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
         """In-place element-wise addition."""
 
     @abstractmethod
-    def sub(self, array1: Array | float, array2: Array | float) -> Array:
+    def subtract(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise subtraction."""
 
     @abstractmethod
-    def isub[T: Array](self, array1: T, array2: Array | float) -> T:
+    def isubtract[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
         """In-place element-wise subtraction."""
 
     @abstractmethod
-    def mul(self, array1: Array | float, array2: Array | float) -> Array:
+    def multiply(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise multiplication."""
 
     @abstractmethod
-    def imul[T: Array](self, array1: T, array2: Array | float) -> T:
+    def imultiply[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
         """In-place element-wise multiplication."""
 
     @abstractmethod
-    def div(self, array1: Array | float, array2: Array | float) -> Array:
+    def divide(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise division."""
 
     @abstractmethod
-    def idiv[T: Array](self, array1: T, array2: Array | float) -> T:
+    def idivide[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
         """In-place element-wise division."""
 
     @abstractmethod
-    def pow(self, array: Array, p: float) -> Array:
-        """Raise ``array`` to power ``p``."""
+    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
+        """Raise ``x`` to power ``p``."""
 
     @abstractmethod
-    def negative(self, array: Array) -> Array:
+    def negative(self, x: Array) -> Array:
         """Element-wise negation."""
 
     @abstractmethod
-    def absolute(self, array: Array) -> Array:
+    def absolute(self, x: Array) -> Array:
         """Element-wise absolute value."""
 
     @abstractmethod
-    def sqrt(self, array: Array) -> Array:
+    def sqrt(self, x: Array) -> Array:
         """Element-wise square root."""
 
     # Comparisons — both operands may be Array or scalar.
 
     @abstractmethod
-    def eq(self, array1: Array | float, array2: Array | float) -> Array:
+    def equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise equality. Returns an :class:`Array` of bools."""
 
     @abstractmethod
-    def ne(self, array1: Array | float, array2: Array | float) -> Array:
+    def not_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise inequality. Returns an :class:`Array` of bools."""
 
     @abstractmethod
-    def lt(self, array1: Array | float, array2: Array | float) -> Array:
+    def less(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise less-than. Returns an :class:`Array` of bools."""
 
     @abstractmethod
-    def le(self, array1: Array | float, array2: Array | float) -> Array:
+    def less_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise less-than-or-equal. Returns an :class:`Array` of bools."""
 
     @abstractmethod
-    def gt(self, array1: Array | float, array2: Array | float) -> Array:
+    def greater(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise greater-than. Returns an :class:`Array` of bools."""
 
     @abstractmethod
-    def ge(self, array1: Array | float, array2: Array | float) -> Array:
+    def greater_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
         """Element-wise greater-than-or-equal. Returns an :class:`Array` of bools."""
 
     # Bitwise — operands may be int/bool arrays or scalars. Mirrors Python's ``&``,
@@ -263,34 +259,34 @@ class Backend(ABC):  # noqa: PLR0904
     # tensors in every supported framework.
 
     @abstractmethod
-    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
+    def bitwise_and(self, x1: bool | int | Array, x2: bool | int | Array) -> Array:
         """Element-wise bitwise/logical AND."""
 
     # Operators -----------------------------------------------------------
 
     @abstractmethod
-    def sign(self, array: Array) -> Array:
+    def sign(self, x: Array) -> Array:
         """Element-wise sign."""
 
     @abstractmethod
-    def maximum(self, array1: Array | float, array2: Array | float) -> Array:
+    def maximum(self, x1: int | float | Array, x2: int | float | Array) -> Array:
         """Element-wise maximum."""
 
     @abstractmethod
-    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+    def argmax(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         """Index of maximum value along ``axis``."""
 
     @abstractmethod
-    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+    def argmin(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         """Index of minimum value along ``axis``."""
 
     @abstractmethod
-    def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
-        """Set ``array[key] = value``."""
+    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
+        """Set ``x[key] = value``."""
 
     @abstractmethod
-    def get_item(self, array: Array, key: ArrayKey) -> Array:
-        """Return ``array[key]``."""
+    def get_item(self, x: Array, key: ArrayKey) -> Array:
+        """Return ``x[key]``."""
 
     # RNG -----------------------------------------------------------------
 
@@ -315,13 +311,13 @@ class Backend(ABC):  # noqa: PLR0904
         """Draw uniformly distributed samples from ``[low, high)``."""
 
     @abstractmethod
-    def normal_like(self, array: Array, mean: float = 0.0, std: float = 1.0) -> Array:
-        """Draw normally distributed samples shaped like ``array``."""
+    def normal_like(self, x: Array, mean: float = 0.0, std: float = 1.0) -> Array:
+        """Draw normally distributed samples shaped like ``x`` with same dtype."""
 
     @abstractmethod
-    def uniform_like(self, array: Array, low: float = 0.0, high: float = 1.0) -> Array:
-        """Draw uniformly distributed samples shaped like ``array``."""
+    def uniform_like(self, x: Array, low: float = 0.0, high: float = 1.0) -> Array:
+        """Draw uniformly distributed samples shaped like ``x`` with same dtype."""
 
     @abstractmethod
-    def choice(self, array: Array, size: int, replace: bool = True) -> Array:
-        """Sample ``size`` elements from ``array``."""
+    def choice(self, x: Array, size: int, replace: bool = True) -> Array:
+        """Sample ``size`` elements from ``x``."""

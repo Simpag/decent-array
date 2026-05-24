@@ -7,9 +7,7 @@ Under the single-active-backend invariant maintained by the backend manager, eve
 directly to the active backend without per-call isinstance dispatch.
 
 Operator contract is *strict*: binary arithmetic and indexing accept either another
-:class:`Array` or a Python scalar (``int``/``float``). Pass other framework-native
-arrays through :func:`decent_array.interoperability.get_item` and friends, not through the
-operator path.
+:class:`Array` or a Python scalar (``int``/``float``).
 
 Hot-path notes:
 
@@ -17,8 +15,8 @@ Hot-path notes:
   ``__neg__``/``__abs__``/``__pow__``, the comparisons ``__eq__``/``__ne__``/``__lt__``/
   ``__le__``/``__gt__``/``__ge__`` and the bitwise ``__and__``/``__rand__`` are
   inlined: every supported framework's tensor implements the equivalent operator
-  natively with numpy-equivalent semantics, so routing through the backend saves
-  nothing.
+  natively with numpy-equivalent semantics, so routing through the interoperability layer
+  introduces unnecessary overhead.
 * Operators that *do* go through the backend (in-place math, indexing, properties
   like ``shape``/``transpose``) read the cached ``_backend`` slot.
 * Overriding ``__eq__`` makes :class:`Array` unhashable (Python clears ``__hash__``
@@ -34,7 +32,7 @@ from decent_array.interoperability._backend_manager import register_backend_list
 
 if TYPE_CHECKING:
     from decent_array.interoperability._abstracts import Backend
-    from decent_array.types import ArrayKey, SupportedArrayTypes
+    from decent_array.types import ArrayKey, SupportedArrayTypes, SupportedDevices
 
 
 _BACKEND_INSTANCE: Backend | None = None
@@ -87,52 +85,52 @@ class Array:  # noqa: PLR0904
 
     # Binary arithmetic ----------------------------------------------------
 
-    def __add__(self, other: Array | float) -> Array:
+    def __add__(self, other: int | float | complex | Array, /) -> Array:
         """Return the sum of the array and another array or a scalar."""
         return Array(self.value + (other.value if type(other) is Array else other))
 
-    def __radd__(self, other: float) -> Array:
+    def __radd__(self, other: int | float | complex | Array, /) -> Array:
         """Return the sum of the array and a scalar."""
         return Array(other + self.value)
 
-    def __sub__(self, other: Array | float) -> Array:
+    def __sub__(self, other: int | float | complex | Array, /) -> Array:
         """Return the subtraction of another array or a scalar from the array."""
         return Array(self.value - (other.value if type(other) is Array else other))
 
-    def __rsub__(self, other: float) -> Array:
+    def __rsub__(self, other: int | float | complex | Array, /) -> Array:
         """Return the subtraction of the array from a scalar."""
         return Array(other - self.value)
 
-    def __mul__(self, other: Array | float) -> Array:
+    def __mul__(self, other: int | float | complex | Array, /) -> Array:
         """Return the product of the array and another array or a scalar."""
         return Array(self.value * (other.value if type(other) is Array else other))
 
-    def __rmul__(self, other: float) -> Array:
+    def __rmul__(self, other: int | float | complex | Array, /) -> Array:
         """Return the product of the array and a scalar."""
         return Array(other * self.value)
 
-    def __truediv__(self, other: Array | float) -> Array:
+    def __truediv__(self, other: int | float | complex | Array, /) -> Array:
         """Return the true division of the array by ``other``."""
         return Array(self.value / (other.value if type(other) is Array else other))
 
-    def __rtruediv__(self, other: float) -> Array:
+    def __rtruediv__(self, other: int | float | complex | Array, /) -> Array:
         """Return the true division of ``other`` by the array."""
         return Array(other / self.value)
 
-    def __matmul__(self, other: Array) -> Array:
+    def __matmul__(self, other: Array, /) -> Array:
         """Return the matrix multiplication of the array with ``other``."""
         return Array(self.value @ other.value)
 
-    def __rmatmul__(self, other: Array) -> Array:
+    def __rmatmul__(self, other: Array, /) -> Array:
         """Return the matrix multiplication of ``other`` with the array."""
         return Array(other.value @ self.value)
 
-    def __pow__(self, other: float) -> Array:
+    def __pow__(self, other: int | float | complex | Array, /) -> Array:
         """Exponentiate the array by a scalar power."""
         # numpy/torch/jax/tf all implement ``tensor ** p`` with semantics matching the
         # backend's ``pow``; routing through the backend would cost an extra method
         # call for no behavioral difference.
-        return Array(self.value**other)
+        return Array(self.value ** (other.value if type(other) is Array else other))
 
     # Comparisons ----------------------------------------------------------
     #
@@ -147,27 +145,27 @@ class Array:  # noqa: PLR0904
 
     __hash__ = None  # type: ignore[assignment]
 
-    def __eq__(self, other: object) -> Array:  # type: ignore[override]
+    def __eq__(self, other: bool | int | float | complex | Array, /) -> Array:  # type: ignore[override]
         """Element-wise equality."""
         return Array(self.value == (other.value if type(other) is Array else other))
 
-    def __ne__(self, other: object) -> Array:  # type: ignore[override]
+    def __ne__(self, other: bool | int | float | complex | Array, /) -> Array:  # type: ignore[override]
         """Element-wise inequality."""
         return Array(self.value != (other.value if type(other) is Array else other))
 
-    def __lt__(self, other: Array | float) -> Array:
+    def __lt__(self, other: int | float | Array, /) -> Array:
         """Element-wise less-than."""
         return Array(self.value < (other.value if type(other) is Array else other))
 
-    def __le__(self, other: Array | float) -> Array:
+    def __le__(self, other: int | float | Array, /) -> Array:
         """Element-wise less-than-or-equal."""
         return Array(self.value <= (other.value if type(other) is Array else other))
 
-    def __gt__(self, other: Array | float) -> Array:
+    def __gt__(self, other: int | float | Array, /) -> Array:
         """Element-wise greater-than."""
         return Array(self.value > (other.value if type(other) is Array else other))
 
-    def __ge__(self, other: Array | float) -> Array:
+    def __ge__(self, other: int | float | Array, /) -> Array:
         """Element-wise greater-than-or-equal."""
         return Array(self.value >= (other.value if type(other) is Array else other))
 
@@ -181,11 +179,11 @@ class Array:  # noqa: PLR0904
     # which fails TF's ``1 & bool_tensor`` rejection. Native operator semantics on
     # the wrapped tensor enforce the actual dtype contract.
 
-    def __and__(self, other: Array | int) -> Array:
+    def __and__(self, other: bool | int | Array, /) -> Array:
         """Element-wise bitwise/logical AND."""
         return Array(self.value & (other.value if type(other) is Array else other))
 
-    def __rand__(self, other: Any) -> Array:  # noqa: ANN401
+    def __rand__(self, other: bool | int | Array, /) -> Array:
         """Element-wise bitwise/logical AND with the array on the right."""
         return Array(other & self.value)
 
@@ -195,24 +193,24 @@ class Array:  # noqa: PLR0904
     # `value` in place, jax/tensorflow rebind it. In every case the returned object is
     # the same wrapper instance, so we just discard the return and yield ``self``.
 
-    def __iadd__(self, other: Array | float) -> Self:
+    def __iadd__(self, other: int | float | complex | Array, /) -> Self:
         """In-place addition."""
         self._backend.iadd(self, other)
         return self
 
-    def __isub__(self, other: Array | float) -> Self:
+    def __isub__(self, other: int | float | complex | Array, /) -> Self:
         """In-place subtraction."""
-        self._backend.isub(self, other)
+        self._backend.isubtract(self, other)
         return self
 
-    def __imul__(self, other: Array | float) -> Self:
+    def __imul__(self, other: int | float | complex | Array, /) -> Self:
         """In-place multiplication."""
-        self._backend.imul(self, other)
+        self._backend.imultiply(self, other)
         return self
 
-    def __itruediv__(self, other: Array | float) -> Self:
+    def __itruediv__(self, other: int | float | complex | Array, /) -> Self:
         """In-place true division."""
-        self._backend.idiv(self, other)
+        self._backend.idivide(self, other)
         return self
 
     # Unary ----------------------------------------------------------------
@@ -231,11 +229,11 @@ class Array:  # noqa: PLR0904
 
     # Indexing -------------------------------------------------------------
 
-    def __getitem__(self, key: ArrayKey) -> Array:
+    def __getitem__(self, key: ArrayKey, /) -> Array:
         """Return the item at ``key``."""
         return self._backend.get_item(self, key)
 
-    def __setitem__(self, key: ArrayKey, value: Array | float) -> None:
+    def __setitem__(self, key: ArrayKey, value: bool | int | float | complex | Array, /) -> None:
         """Set the item at ``key`` to ``value``."""
         if not isinstance(value, Array):
             value = Array(value)
@@ -251,7 +249,7 @@ class Array:  # noqa: PLR0904
 
     def __float__(self) -> float:
         """Coerce a scalar array to a Python float."""
-        return float(self._backend.astype(self, float))
+        return float(self._backend.squeeze(self).value)
 
     # Repr -----------------------------------------------------------------
 
@@ -299,3 +297,8 @@ class Array:  # noqa: PLR0904
     def all(self) -> bool:
         """Return True if all elements of the array are truthy."""
         return self._backend.all(self)
+
+    @property
+    def device(self) -> SupportedDevices:
+        """Return the device of the array."""
+        return self._backend.device_of(self)

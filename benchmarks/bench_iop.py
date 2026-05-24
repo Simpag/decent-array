@@ -108,7 +108,7 @@ def _bench_case(case: BackendCase) -> None:
         print_size_header(n)
         rows = (
             ("add", lambda a=a, b=b: native["add"](a, b), lambda d_a=d_a, d_b=d_b: iop.add(d_a, d_b)),
-            ("mul", lambda a=a, b=b: native["mul"](a, b), lambda d_a=d_a, d_b=d_b: iop.mul(d_a, d_b)),
+            ("mul", lambda a=a, b=b: native["mul"](a, b), lambda d_a=d_a, d_b=d_b: iop.multiply(d_a, d_b)),
             ("dot", lambda a=a, b=b: native["dot"](a, b), lambda d_a=d_a, d_b=d_b: iop.dot(d_a, d_b)),
             ("sum", lambda a=a: native["sum"](a), lambda d_a=d_a: iop.sum(d_a)),
             ("mean", lambda a=a: native["mean"](a), lambda d_a=d_a: iop.mean(d_a)),

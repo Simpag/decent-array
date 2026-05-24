@@ -9,3 +9,5 @@
 dist
 pyrightconfig.json
 .claude
+*.py[codz]
+*$py.class

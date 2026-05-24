@@ -1,7 +1,7 @@
 [project]
 name = "decent-array"
 version = "0.1.0"
-authors = [{name = "Elias Ram"}, {name = "Simon Granström"}, {name = "Adriana Rodriguez"}, {name = "Nicola Bastianello"}]
+authors = [{name = "Simon Granström"}, {name = "Nicola Bastianello"}]
 maintainers = [{name = "Team Decent"}]
 description = "A library of array operations and linear algebra primitives for interoperability across ML frameworks."
 readme = "README.md"
@@ -26,9 +26,6 @@ dev = [
   "mypy",
   "pytest",
   "ruff",
-  "scipy-stubs",
-  "types-networkx",
-  "types-tabulate",
   "torch",
   "torchvision",
   "types-tensorflow",
@@ -71,7 +68,8 @@ include = [
 mypy-args = ["--ignore-missing-imports"]
 
 [tool.tox]
-envlist = ["dev", "mypy", "pytest", "ruff", "sphinx"]
+envlist = ["dev", "mypy", "mypyc", "pytest", "ruff", "sphinx"]
+package = "editable"
 
 [tool.tox.env.dev]
 description = "Generate dev venv with all dependencies, active with `source .tox/dev/bin/activate`"
@@ -82,6 +80,7 @@ deps = [
   ".[sphinx-tools]",
   "git+https://github.com/microsoft/python-type-stubs.git@main"
 ]
+package = "editable"
 
 [tool.tox.env.dev-gpu]
 description = "Generate dev venv with all dependencies including GPU support, active with `source .tox/dev-gpu/bin/activate`"
@@ -92,12 +91,16 @@ deps = [
   ".[sphinx-tools]",
   "git+https://github.com/microsoft/python-type-stubs.git@main"
 ]
+package = "editable"
 
 [tool.tox.env.sphinx]
 description = "Generate rst and html files using sphinx"
 set_env = { HATCH_BUILD_NO_HOOKS = "true" }
+skip_install = true
+allowlist_externals = ["tox"]
 deps = [".[sphinx-tools]"]
 commands = [
+  ["tox", "-e", "clean-mypyc"],  # ensure .py source files are used for doc generation, not mypyc-compiled .so
   ["sphinx-apidoc", "-o", "docs/source/api", "decent_array", "--separate", "--no-toc", "--templatedir=docs/source/_templates"],
   ["sphinx-build", "-W", "-E", "-b", "html", "docs/source", "docs/build/html"]
 ]
@@ -121,13 +124,14 @@ commands = [
 description = "Compile hot-path modules in place with mypyc (drops .so files alongside the .py source)"
 deps = ["mypy", "numpy", "setuptools"]
 skip_install = true
+allowlist_externals = ["tox"]
 # First command clears any stale shared-runtime ``.so`` at the project root from a
 # previous compile (its name is hash-derived from the file list, so changing inputs
 # leaves orphans); second command compiles the Array module + entire iop2 package
 # (including ``_abstracts``) as one group so cross-module dispatch (Array →
 # _Backend.add → concrete backend method) is native compiled-to-compiled.
 commands = [
-  ["python", "-c", "import pathlib; [p.unlink() for p in pathlib.Path('.').glob('*__mypyc.cpython-*.so')]"],
+  ["tox", "-e", "clean-mypyc"],  # ensure we're compiling from a clean slate with no stale .so files
   ["python", "-m", "mypyc",
     "--ignore-missing-imports",
     "decent_array/",
@@ -148,6 +152,9 @@ commands = [
   ["ruff", "check", "decent_array"],
   ["ruff", "format", "decent_array", "--check"]
 ]
+
+[tool.tox.labels]
+lint = ["ruff", "mypy"]
 
 [tool.pytest.ini_options]
 addopts = "-q -W error"
@@ -185,6 +192,7 @@ lint.ignore = [
   "FBT001",   # boolean-type-hint-positional-argument, complains about bool args with default values in functions
   "FBT002",   # boolean-default-value-positional-argument, complains about bool args with default values in functions
   "ICN001",   # unconventional-import-alias, complains about common import aliases like `import numpy as np` but it doesn't work for most libraries
+  "PYI041",   # Removes warning for redundant types in cases like int | float | complex where complex already covers int and float, but we want to keep the union for readability and explicitness about supported types.
 ]
 preview = true
 line-length = 120

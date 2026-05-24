@@ -11,6 +11,7 @@ from decent_array.interoperability._abstracts import Backend
 from decent_array.interoperability._backend_manager import (
     _instantiate,
     _normalize,
+    default_device,
     register_backend,
     register_backend_listener,
     reset_backends,
@@ -187,3 +188,17 @@ def test_set_backend_device_mismatch_raises() -> None:
     with pytest.raises((RuntimeError, ValueError)):
         # The same backend cannot be reconfigured to a different device.
         set_backend("numpy", "gpu")
+
+
+# default_device --------------------------------------------------------
+
+
+def test_default_device_returns_active_device() -> None:
+    set_backend("numpy", SupportedDevices.CPU)
+    assert default_device() == SupportedDevices.CPU
+
+
+def test_default_device_raises_when_no_backend() -> None:
+    reset_backends()
+    with pytest.raises(RuntimeError, match=r"No active backend"):
+        default_device()

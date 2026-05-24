@@ -15,6 +15,12 @@ Prerequisites
 
 Installation for Development
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A compatible C compiler is required to build the mypyc extensions. On Windows, install 
+`Build Tools for Visual Studio 2022 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`_ or
+`C++ Build Tools <https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_.
+and select the "C++ build tools" workload. On Mac, install Xcode Command Line Tools by running :code:`xcode-select --install` in the terminal.
+On Linux, install the appropriate build tools for your distribution, see the `Mypyc documentation <https://mypyc.readthedocs.io/en/latest/getting_started.html>`_ for details.
+
 .. code-block::
 
    git clone https://github.com/team-decent/decent-array.git
@@ -40,9 +46,10 @@ To make sure all GitHub status checks pass, simply run :code:`tox`. You can also
 .. code-block::
 
     tox -e mypy       # find typing issues
-    tox -e pytest     # run tests
     tox -e ruff       # find formatting and style issues
+    tox -e pytest     # run tests
     tox -e sphinx     # rebuild documentation
+    tox -m lint       # run all linters (ruff + mypy)
 
 Note: Running :code:`tox` commands can take several minutes and may require admin privileges.
 If you have mypy addon installed in your IDE, you can use it to get instant feedback on typing issues while coding.

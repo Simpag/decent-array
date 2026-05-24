@@ -34,22 +34,17 @@ def set_backend(
 
     Args:
         backend: A :class:`~decent_array.types.SupportedFrameworks` value, its canonical string (e.g.
-            ``"numpy"``, ``"pytorch"``), or any alias declared by the backend at
-            registration time. Aliases are only resolvable after the backend module has
-            been loaded; pass the canonical name on the first call to trigger autoload.
+            ``"numpy"``, ``"pytorch"``).
         device: Target accelerator. Accepts a :class:`~decent_array.types.SupportedDevices` value or its
             string equivalent (``"cpu"``, ``"gpu"``, ``"mps"``). Defaults to CPU. The
             backend's array-creation methods produce arrays on this device by default.
 
-    Note:
-        Raises :class:`ImportError` if the backend module cannot be imported (e.g. due to
-        a missing optional dependency).
-
     Raises:
         RuntimeError: If a different backend (or the same backend with a different device)
             is already active in this context.
+        ImportError: If the backend module cannot be imported (e.g. due to a missing optional dependency).
 
-    """
+    """  # noqa: DOC502
     requested = _normalize(backend)
     requested_device = device if isinstance(device, SupportedDevices) else SupportedDevices(device)
 
@@ -98,12 +93,7 @@ def register_backend(
     """
     Register a backend class under a :class:`SupportedFrameworks` value.
 
-    Called once per backend module *after* the class definition (rather than as a
-    class decorator). Decorator-based registration would mark the decorated class as
-    non-extension under mypyc, blocking native compiled-to-compiled dispatch on
-    ``_BACKEND.add(...)`` and friends — the call-form keeps concrete backends as
-    extension classes.
-
+    Called once per backend module *after* the class definition.
     Backends are instantiated lazily on first use. Re-registering replaces the
     previous class and discards any cached instance, but keeps existing aliases
     (which still point to the same canonical name).
@@ -137,7 +127,30 @@ def reset_backends() -> None:
         listener(None)
 
 
+def default_device() -> SupportedDevices:
+    """
+    Return the default device for the active backend.
+
+    Raises:
+        RuntimeError: If no backend is currently active.
+
+    """
+    backend = _BACKEND_INSTANCE
+    if backend is None:
+        raise RuntimeError(
+            "No active backend. Call set_backend() to initialize a backend before querying the default device."
+        )
+    return backend.device
+
+
 def _normalize(backend: SupportedFrameworks | str) -> SupportedFrameworks:
+    """
+    Convert a backend identifier to its canonical :class:`SupportedFrameworks` value.
+
+    Raises:
+        KeyError: If the input is not a valid backend identifier.
+
+    """
     if isinstance(backend, SupportedFrameworks):
         return backend
     try:
@@ -148,11 +161,18 @@ def _normalize(backend: SupportedFrameworks | str) -> SupportedFrameworks:
 
 
 def _instantiate(backend: SupportedFrameworks, device: SupportedDevices) -> Backend:
+    """
+    Get or create a backend instance for the given backend and device.
+
+    Raises:
+        KeyError: If the backend is not registered and cannot be auto-imported.
+
+    """
     if backend in _BACKEND_INSTANCES:
         return _BACKEND_INSTANCES[backend]
 
     if backend not in _BACKEND_REGISTRY:
-        _auto_import(backend)
+        _auto_import(backend)  # Attempt to load the backend module, which should register the backend as a side-effect.
 
     cls = _BACKEND_REGISTRY.get(backend)
     if cls is None:

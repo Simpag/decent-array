@@ -58,9 +58,9 @@ def hot_loop(a: Array, b: Array, iterations: int) -> None:
         _ = a**2.0
         # Function surface (iop dispatch)
         _ = iop.add(a, b)
-        _ = iop.mul(a, b)
+        _ = iop.multiply(a, b)
         _ = iop.sum(a)
-        _ = iop.norm(a)
+        _ = iop.vector_norm(a)
         _ = iop.dot(a, b)
         _ = iop.sqrt(a)
 

@@ -1,5 +1,5 @@
 """
-JAX backend for interoperability_2.
+JAX backend.
 
 Importing this module registers the backend via :func:`register_backend`, so the
 package can be auto-loaded on the first ``set_backend("jax")`` call.
@@ -22,12 +22,29 @@ from numpy.typing import NDArray
 from decent_array import Array
 from decent_array.interoperability._abstracts import Backend
 from decent_array.interoperability._backend_manager import register_backend
-from decent_array.types import ArrayKey, SupportedDevices, SupportedFrameworks
+from decent_array.types import ArrayKey, DTypes, SupportedArrayTypes, SupportedDevices, SupportedFrameworks
 
 
-def _unwrap(array: Any) -> Any:  # noqa: ANN401
-    """Return the underlying value of an :class:`Array`, or pass ``array`` through."""
-    return array.value if type(array) is Array else array
+def _unwrap(x: Any) -> Any:  # noqa: ANN401
+    """Return the underlying value of an :class:`Array`, or pass ``x`` through."""
+    return x.value if type(x) is Array else x
+
+
+_DTYPE_MAP = {
+    DTypes.BOOL: jnp.bool_,
+    DTypes.UINT8: jnp.uint8,
+    DTypes.UINT16: jnp.uint16,
+    DTypes.UINT32: jnp.uint32,
+    DTypes.UINT64: jnp.uint64,
+    DTypes.INT8: jnp.int8,
+    DTypes.INT16: jnp.int16,
+    DTypes.INT32: jnp.int32,
+    DTypes.INT64: jnp.int64,
+    DTypes.FLOAT32: jnp.float32,
+    DTypes.FLOAT64: jnp.float64,
+    DTypes.COMPLEX64: jnp.complex64,
+    DTypes.COMPLEX128: jnp.complex128,
+}
 
 
 class JaxBackend(Backend):  # noqa: PLR0904
@@ -40,25 +57,20 @@ class JaxBackend(Backend):  # noqa: PLR0904
 
     # Array creation
 
-    def zeros(self, shape: tuple[int, ...]) -> Array:
+    def zeros(self, shape: int | tuple[int, ...]) -> Array:
         return Array(jnp.zeros(shape, device=self._native_device))
 
-    def zeros_like(self, array: Array) -> Array:
-        return Array(jnp.zeros_like(array.value))
+    def zeros_like(self, x: Array) -> Array:
+        return Array(jnp.zeros_like(x.value))
 
-    def ones(self, shape: tuple[int, ...]) -> Array:
+    def ones(self, shape: int | tuple[int, ...]) -> Array:
         return Array(jnp.ones(shape, device=self._native_device))
 
-    def ones_like(self, array: Array) -> Array:
-        return Array(jnp.ones_like(array.value))
+    def ones_like(self, x: Array) -> Array:
+        return Array(jnp.ones_like(x.value))
 
     def eye(self, n: int) -> Array:
         return Array(jnp.eye(n, device=self._native_device))
-
-    def eye_like(self, array: Array) -> Array:
-        v = array.value
-        rows, cols = v.shape[-2:]
-        return Array(jnp.eye(rows, cols, dtype=v.dtype, device=v.device))
 
     def device_to_native(self, device: SupportedDevices) -> jax.Device:
         if device == SupportedDevices.CPU:
@@ -67,8 +79,8 @@ class JaxBackend(Backend):  # noqa: PLR0904
             return jax.devices("gpu")[0]
         raise ValueError(f"Unsupported device for JAX: {device}")
 
-    def device_of(self, array: Array) -> SupportedDevices:
-        platform = array.value.device.platform
+    def device_of(self, x: Array) -> SupportedDevices:
+        platform = x.value.device.platform
         if platform == "gpu":
             return SupportedDevices.GPU
         if platform == "cpu":
@@ -77,180 +89,182 @@ class JaxBackend(Backend):  # noqa: PLR0904
 
     # Array manipulation
 
-    def copy(self, array: Array) -> Array:
-        return Array(jnp.array(array.value, copy=True))
+    def copy(self, x: Array) -> Array:
+        return Array(jnp.array(x.value, copy=True))
 
-    def to_numpy(self, array: Array) -> NDArray[Any]:
-        return np.array(array.value)
+    def to_numpy(self, x: SupportedArrayTypes | Array) -> NDArray[Any]:
+        return np.array(x.value if type(x) is Array else x)
 
-    def from_numpy(self, array: NDArray[Any]) -> Array:
-        return Array(jnp.array(array, device=self._native_device))
+    def from_numpy(self, x: NDArray[Any]) -> Array:
+        return Array(jnp.array(x, device=self._native_device))
 
-    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+    def from_numpy_like(self, x: NDArray[Any], like: Array) -> Array:
         v = like.value
-        return Array(jnp.asarray(array, dtype=v.dtype, device=v.device))
+        return Array(jnp.asarray(x, dtype=v.dtype, device=v.device))
 
-    def to_array(self, array: float | bool) -> Array:
-        return Array(jnp.array(array, device=self._native_device))
+    def asarray(self, x: bool | int | float | complex) -> Array:
+        return Array(jnp.array(x, device=self._native_device))
 
     def stack(self, arrays: Sequence[Array], axis: int = 0) -> Array:
         if len(arrays) == 0:
             raise ValueError("Cannot stack an empty sequence of arrays.")
         return Array(jnp.stack([a.value for a in arrays], axis=axis))
 
-    def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
-        return Array(jnp.reshape(array.value, shape))
+    def reshape(self, x: Array, shape: tuple[int, ...]) -> Array:
+        return Array(jnp.reshape(x.value, shape))
 
-    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
-        return Array(jnp.transpose(array.value, axes=axis))
+    def transpose(self, x: Array, axis: tuple[int, ...] | None = None) -> Array:
+        return Array(jnp.transpose(x.value, axes=axis))
 
-    def shape(self, array: Array) -> tuple[int, ...]:
-        return tuple(array.value.shape)
+    def shape(self, x: Array) -> tuple[int, ...]:
+        return tuple(x.value.shape)
 
-    def size(self, array: Array) -> int:
-        return int(array.value.size)
+    def size(self, x: Array) -> int:
+        return int(x.value.size)
 
-    def ndim(self, array: Array) -> int:
-        return int(array.value.ndim)
+    def ndim(self, x: Array) -> int:
+        return int(x.value.ndim)
 
-    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
-        return Array(jnp.squeeze(array.value, axis=axis))
+    def squeeze(self, x: Array, axis: int | tuple[int, ...] | None = None) -> Array:
+        return Array(jnp.squeeze(x.value, axis=axis))
 
-    def unsqueeze(self, array: Array, axis: int) -> Array:
-        return Array(jnp.expand_dims(array.value, axis=axis))
+    def unsqueeze(self, x: Array, axis: int) -> Array:
+        return Array(jnp.expand_dims(x.value, axis=axis))
 
-    def diag(self, array: Array) -> Array:
-        return Array(jnp.diag(array.value))
+    def diag(self, x: Array) -> Array:
+        return Array(jnp.diag(x.value))
 
-    def astype(self, array: Array, dtype: type[float | int | bool]) -> float | int | bool:
-        return dtype(array.value.item())
+    def astype(self, x: Array, dtype: DTypes) -> Array:
+        if dtype not in _DTYPE_MAP:
+            raise ValueError(f"Unsupported dtype '{dtype.value}' for NumPy backend.")
+        return Array(jnp.asarray(x.value, dtype=_DTYPE_MAP[dtype]))
 
     # Linalg
 
-    def dot(self, array1: Array, array2: Array) -> Array:
-        return Array(jnp.dot(array1.value, array2.value))
+    def dot(self, x1: Array, x2: Array) -> Array:
+        return Array(jnp.dot(x1.value, x2.value))
 
-    def matmul(self, array1: Array, array2: Array) -> Array:
-        return Array(array1.value @ array2.value)
+    def matmul(self, x1: Array, x2: Array) -> Array:
+        return Array(x1.value @ x2.value)
 
-    def norm(
+    def vector_norm(
         self,
-        array: Array,
+        x: Array,
         p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
-        return Array(jnp.linalg.norm(array.value, ord=p, axis=axis, keepdims=keepdims))
+        return Array(jnp.linalg.norm(x.value, ord=p, axis=axis, keepdims=keepdims))
 
     # Math reductions
 
-    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.sum(array.value, axis=axis, keepdims=keepdims))
+    def sum(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.sum(x.value, axis=axis, keepdims=keepdims))
 
-    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.mean(array.value, axis=axis, keepdims=keepdims))
+    def mean(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.mean(x.value, axis=axis, keepdims=keepdims))
 
-    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.min(array.value, axis=axis, keepdims=keepdims))
+    def min(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.min(x.value, axis=axis, keepdims=keepdims))
 
-    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.max(array.value, axis=axis, keepdims=keepdims))
+    def max(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.max(x.value, axis=axis, keepdims=keepdims))
 
-    def any(self, array: Array) -> bool:
-        return bool(jnp.any(array.value))
+    def any(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        return bool(jnp.any(x.value, axis=axis, keepdims=keepdims))
 
-    def all(self, array: Array) -> bool:
-        return bool(jnp.all(array.value))
+    def all(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        return bool(jnp.all(x.value, axis=axis, keepdims=keepdims))
 
     # Math elementwise — JAX arrays are immutable; "in-place" ops rebind the wrapper.
     # Operands may be Array or scalar (operator dunders pass either); ``Array | float``
     # covers both because PEP 484's numeric tower implicitly admits ``int``.
 
-    def add(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.add(_unwrap(array1), _unwrap(array2)))
+    def add(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.add(_unwrap(x1), _unwrap(x2)))
 
-    def iadd[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value = jnp.add(array1.value, _unwrap(array2))
-        return array1
+    def iadd[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value = jnp.add(x1.value, _unwrap(x2))
+        return x1
 
-    def sub(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.subtract(_unwrap(array1), _unwrap(array2)))
+    def subtract(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.subtract(_unwrap(x1), _unwrap(x2)))
 
-    def isub[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value = jnp.subtract(array1.value, _unwrap(array2))
-        return array1
+    def isubtract[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value = jnp.subtract(x1.value, _unwrap(x2))
+        return x1
 
-    def mul(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.multiply(_unwrap(array1), _unwrap(array2)))
+    def multiply(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.multiply(_unwrap(x1), _unwrap(x2)))
 
-    def imul[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value = jnp.multiply(array1.value, _unwrap(array2))
-        return array1
+    def imultiply[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value = jnp.multiply(x1.value, _unwrap(x2))
+        return x1
 
-    def div(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.divide(_unwrap(array1), _unwrap(array2)))
+    def divide(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.divide(_unwrap(x1), _unwrap(x2)))
 
-    def idiv[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value = jnp.divide(array1.value, _unwrap(array2))
-        return array1
+    def idivide[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value = jnp.divide(x1.value, _unwrap(x2))
+        return x1
 
-    def pow(self, array: Array, p: float) -> Array:
-        return Array(jnp.power(array.value, p))
+    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
+        return Array(jnp.power(_unwrap(x), _unwrap(p)))
 
-    def negative(self, array: Array) -> Array:
-        return Array(jnp.negative(array.value))
+    def negative(self, x: Array) -> Array:
+        return Array(jnp.negative(x.value))
 
-    def absolute(self, array: Array) -> Array:
-        return Array(jnp.abs(array.value))
+    def absolute(self, x: Array) -> Array:
+        return Array(jnp.abs(x.value))
 
-    def sqrt(self, array: Array) -> Array:
-        return Array(jnp.sqrt(array.value))
+    def sqrt(self, x: Array) -> Array:
+        return Array(jnp.sqrt(x.value))
 
     # Comparisons
 
-    def eq(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.equal(_unwrap(array1), _unwrap(array2)))
+    def equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.equal(_unwrap(x1), _unwrap(x2)))
 
-    def ne(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.not_equal(_unwrap(array1), _unwrap(array2)))
+    def not_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.not_equal(_unwrap(x1), _unwrap(x2)))
 
-    def lt(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.less(_unwrap(array1), _unwrap(array2)))
+    def less(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.less(_unwrap(x1), _unwrap(x2)))
 
-    def le(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.less_equal(_unwrap(array1), _unwrap(array2)))
+    def less_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.less_equal(_unwrap(x1), _unwrap(x2)))
 
-    def gt(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.greater(_unwrap(array1), _unwrap(array2)))
+    def greater(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.greater(_unwrap(x1), _unwrap(x2)))
 
-    def ge(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.greater_equal(_unwrap(array1), _unwrap(array2)))
+    def greater_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.greater_equal(_unwrap(x1), _unwrap(x2)))
 
     # Bitwise
 
-    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.bitwise_and(_unwrap(array1), _unwrap(array2)))
+    def bitwise_and(self, x1: int | Array, x2: int | Array) -> Array:
+        return Array(jnp.bitwise_and(_unwrap(x1), _unwrap(x2)))
 
     # Operators
 
-    def sign(self, array: Array) -> Array:
-        return Array(jnp.sign(array.value))
+    def sign(self, x: Array) -> Array:
+        return Array(jnp.sign(x.value))
 
-    def maximum(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(jnp.maximum(_unwrap(array1), _unwrap(array2)))
+    def maximum(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(jnp.maximum(_unwrap(x1), _unwrap(x2)))
 
-    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.argmax(array.value, axis=axis, keepdims=keepdims))
+    def argmax(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.argmax(x.value, axis=axis, keepdims=keepdims))
 
-    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
-        return Array(jnp.argmin(array.value, axis=axis, keepdims=keepdims))
+    def argmin(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(jnp.argmin(x.value, axis=axis, keepdims=keepdims))
 
-    def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
+    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
         # JAX arrays are immutable; rebind the wrapper to a new array with `key` updated.
-        array.value = array.value.at[key].set(value.value)
+        x.value = x.value.at[key].set(value.value)
 
-    def get_item(self, array: Array, key: ArrayKey) -> Array:
-        return Array(array.value[key])
+    def get_item(self, x: Array, key: ArrayKey) -> Array:
+        return Array(x.value[key])
 
     # RNG
 
@@ -273,19 +287,19 @@ class JaxBackend(Backend):  # noqa: PLR0904
         sub = self._next_key()
         return Array(jax.random.uniform(sub, shape=shape, minval=low, maxval=high).to_device(self._native_device))
 
-    def normal_like(self, array: Array, mean: float = 0.0, std: float = 1.0) -> Array:
-        v = array.value
+    def normal_like(self, x: Array, mean: float = 0.0, std: float = 1.0) -> Array:
+        v = x.value
         sub = self._next_key()
         sample = jax.random.normal(sub, shape=v.shape, dtype=v.dtype)
         return Array(mean + std * sample)
 
-    def uniform_like(self, array: Array, low: float = 0.0, high: float = 1.0) -> Array:
-        v = array.value
+    def uniform_like(self, x: Array, low: float = 0.0, high: float = 1.0) -> Array:
+        v = x.value
         sub = self._next_key()
         return Array(jax.random.uniform(sub, shape=v.shape, dtype=v.dtype, minval=low, maxval=high))
 
-    def choice(self, array: Array, size: int, replace: bool = True) -> Array:
-        v = array.value
+    def choice(self, x: Array, size: int, replace: bool = True) -> Array:
+        v = x.value
         sub = self._next_key()
         indices = jax.random.choice(sub, a=v.shape[0], shape=(size,), replace=replace)
         return Array(v[indices])

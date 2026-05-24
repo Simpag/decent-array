@@ -124,6 +124,12 @@ def test_pow_scalar(backend: tuple) -> None:
     np.testing.assert_allclose(_np(a**2), [1.0, 4.0, 9.0])
 
 
+def test_pow_array(backend: tuple) -> None:
+    a = _create_array([1.0, 2.0, 3.0])
+    b = _create_array([3.0, 2.0, 1.0])
+    np.testing.assert_allclose(_np(a**b), [1.0, 4.0, 3.0])
+
+
 # Comparisons ------------------------------------------------------------
 
 
@@ -257,10 +263,30 @@ def test_isub_array(backend: tuple) -> None:
     np.testing.assert_allclose(_np(a), [4.0, 4.0, 4.0])
 
 
+def test_isub_scalar(backend: tuple) -> None:
+    a = _create_array([5.0, 6.0, 7.0])
+    a -= 1
+    np.testing.assert_allclose(_np(a), [4.0, 5.0, 6.0])
+
+
+def test_imul_array(backend: tuple) -> None:
+    a = _create_array([1.0, 2.0, 3.0])
+    b = _create_array([4.0, 5.0, 6.0])
+    a *= b
+    np.testing.assert_allclose(_np(a), [4.0, 10.0, 18.0])
+
+
 def test_imul_scalar(backend: tuple) -> None:
     a = _create_array([1.0, 2.0, 3.0])
     a *= 2
     np.testing.assert_allclose(_np(a), [2.0, 4.0, 6.0])
+
+
+def test_itruediv_array(backend: tuple) -> None:
+    a = _create_array([2.0, 6.0, 12.0])
+    b = _create_array([2.0, 3.0, 4.0])
+    a /= b
+    np.testing.assert_allclose(_np(a), [1.0, 2.0, 3.0])
 
 
 def test_itruediv_scalar(backend: tuple) -> None:
@@ -387,3 +413,9 @@ def test_all_true(backend: tuple) -> None:
 def test_all_false(backend: tuple) -> None:
     a = _create_array([1.0, 0.0, 3.0])
     assert a.all is False
+
+
+def test_device_property(backend: tuple) -> None:
+    _framework, device = backend
+    a = iop.zeros((3,))
+    assert a.device == device

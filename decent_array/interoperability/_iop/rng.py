@@ -18,14 +18,17 @@ RNG-state snapshot self-consistent.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from decent_array.interoperability._backend_manager import _instantiate, register_backend_listener
 from decent_array.types import SupportedDevices, SupportedFrameworks
 
 if TYPE_CHECKING:
+    import numpy
+
     from decent_array import Array
     from decent_array.interoperability._abstracts import Backend
+    from decent_array.interoperability._numpy import NumpyBackend
 
 
 _NUMPY_STATE_KEY = "__numpy_rng_state__"
@@ -65,7 +68,7 @@ class _RngCoordinator:
         random.seed(seed)
         active = _BACKEND_INSTANCE
         active.set_seed(seed)
-        numpy_backend = self._numpy_backend()
+        numpy_backend = self.numpy_backend()
         if numpy_backend is not active:
             numpy_backend.set_seed(seed)
         if set_global_seed:
@@ -91,7 +94,7 @@ class _RngCoordinator:
         active = _BACKEND_INSTANCE
         state = active.get_rng_state()
         state[_PYTHON_RANDOM_KEY] = random.getstate()
-        numpy_backend = self._numpy_backend()
+        numpy_backend = self.numpy_backend()
         if numpy_backend is not active:
             state[_NUMPY_STATE_KEY] = numpy_backend.get_rng_state()
         return state
@@ -107,15 +110,15 @@ class _RngCoordinator:
         if python_state is not None:
             random.setstate(python_state)
         active = _BACKEND_INSTANCE
-        numpy_backend = self._numpy_backend()
+        numpy_backend = self.numpy_backend()
         if numpy_backend is not active:
             numpy_state = state.pop(_NUMPY_STATE_KEY, None)
             if numpy_state is not None:
                 numpy_backend.set_rng_state(numpy_state)
         active.set_rng_state(state)
 
-    def _numpy_backend(self) -> Backend:
-        return _instantiate(SupportedFrameworks.NUMPY, SupportedDevices.CPU)
+    def numpy_backend(self) -> NumpyBackend:
+        return cast("NumpyBackend", _instantiate(SupportedFrameworks.NUMPY, SupportedDevices.CPU))
 
 
 _COORDINATOR = _RngCoordinator()
@@ -139,6 +142,12 @@ def _reset_rng() -> None:
     """Reset RNG state to a fresh state."""
     global _COORDINATOR  # noqa: PLW0603
     _COORDINATOR = _RngCoordinator()
+
+
+def get_numpy_rng() -> numpy.random.Generator:
+    """Return a NumPy Generator seeded from the current state."""
+    np_backend = _COORDINATOR.numpy_backend()
+    return np_backend._rng  # noqa: SLF001
 
 
 def get_seed() -> int | None:
@@ -190,22 +199,22 @@ def uniform(low: float = 0.0, high: float = 1.0, shape: tuple[int, ...] = ()) ->
     return _BACKEND_INSTANCE.uniform(low, high, shape)
 
 
-def normal_like(array: Array, mean: float = 0.0, std: float = 1.0) -> Array:
-    """Draw normally distributed samples shaped like ``array``."""
+def normal_like(x: Array, mean: float = 0.0, std: float = 1.0) -> Array:
+    """Draw normally distributed samples shaped like ``x`` with same dtype."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.normal_like(array, mean, std)
+    return _BACKEND_INSTANCE.normal_like(x, mean, std)
 
 
-def uniform_like(array: Array, low: float = 0.0, high: float = 1.0) -> Array:
-    """Draw uniformly distributed samples shaped like ``array``."""
+def uniform_like(x: Array, low: float = 0.0, high: float = 1.0) -> Array:
+    """Draw uniformly distributed samples shaped like ``x`` with same dtype."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.uniform_like(array, low, high)
+    return _BACKEND_INSTANCE.uniform_like(x, low, high)
 
 
-def choice(array: Array, size: int, replace: bool = True) -> Array:
-    """Sample ``size`` elements from ``array``."""
+def choice(x: Array, size: int, replace: bool = True) -> Array:
+    """Sample ``size`` elements from ``x``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.choice(array, size, replace)
+    return _BACKEND_INSTANCE.choice(x, size, replace)

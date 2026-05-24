@@ -1,7 +1,5 @@
 User Guide
 ==========
-This user guide shows you different examples of how to use decent-array.
-
 
 Installation
 ------------

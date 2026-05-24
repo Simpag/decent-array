@@ -1,5 +1,5 @@
 """
-PyTorch backend for interoperability_2.
+PyTorch backend.
 
 Importing this module registers the backend via :func:`register_backend`, so the
 package can be auto-loaded on the first ``set_backend("pytorch")`` call.
@@ -17,12 +17,29 @@ from numpy.typing import NDArray
 from decent_array import Array
 from decent_array.interoperability._abstracts import Backend
 from decent_array.interoperability._backend_manager import register_backend
-from decent_array.types import ArrayKey, SupportedDevices, SupportedFrameworks
+from decent_array.types import ArrayKey, DTypes, SupportedArrayTypes, SupportedDevices, SupportedFrameworks
 
 
-def _unwrap(array: Any) -> Any:  # noqa: ANN401
-    """Return the underlying value of an :class:`Array`, or pass ``array`` through."""
-    return array.value if type(array) is Array else array
+def _unwrap(x: Any) -> Any:  # noqa: ANN401
+    """Return the underlying value of an :class:`Array`, or pass ``x`` through."""
+    return x.value if type(x) is Array else x
+
+
+_DTYPE_MAP = {
+    DTypes.BOOL: torch.bool,
+    DTypes.UINT8: torch.uint8,
+    DTypes.UINT16: torch.uint16,
+    DTypes.UINT32: torch.uint32,
+    DTypes.UINT64: torch.uint64,
+    DTypes.INT8: torch.int8,
+    DTypes.INT16: torch.int16,
+    DTypes.INT32: torch.int32,
+    DTypes.INT64: torch.int64,
+    DTypes.FLOAT32: torch.float32,
+    DTypes.FLOAT64: torch.float64,
+    DTypes.COMPLEX64: torch.complex64,
+    DTypes.COMPLEX128: torch.complex128,
+}
 
 
 class PyTorchBackend(Backend):  # noqa: PLR0904
@@ -35,24 +52,20 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
 
     # Array creation
 
-    def zeros(self, shape: tuple[int, ...]) -> Array:
+    def zeros(self, shape: int | tuple[int, ...]) -> Array:
         return Array(torch.zeros(shape, device=self._native_device))
 
-    def zeros_like(self, array: Array) -> Array:
-        return Array(torch.zeros_like(array.value))
+    def zeros_like(self, x: Array) -> Array:
+        return Array(torch.zeros_like(x.value))
 
-    def ones(self, shape: tuple[int, ...]) -> Array:
+    def ones(self, shape: int | tuple[int, ...]) -> Array:
         return Array(torch.ones(shape, device=self._native_device))
 
-    def ones_like(self, array: Array) -> Array:
-        return Array(torch.ones_like(array.value))
+    def ones_like(self, x: Array) -> Array:
+        return Array(torch.ones_like(x.value))
 
     def eye(self, n: int) -> Array:
         return Array(torch.eye(n, device=self._native_device))
-
-    def eye_like(self, array: Array) -> Array:
-        v = array.value
-        return Array(torch.eye(*v.shape[-2:], dtype=v.dtype, device=v.device))
 
     def device_to_native(self, device: SupportedDevices) -> str:
         if device == SupportedDevices.CPU:
@@ -63,8 +76,8 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
             return "mps"
         raise ValueError(f"Unsupported device: {device}")
 
-    def device_of(self, array: Array) -> SupportedDevices:
-        kind = array.value.device.type
+    def device_of(self, x: Array) -> SupportedDevices:
+        kind = x.value.device.type
         if kind == "cpu":
             return SupportedDevices.CPU
         if kind == "cuda":
@@ -75,189 +88,191 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
 
     # Array manipulation
 
-    def copy(self, array: Array) -> Array:
-        return Array(array.value.detach().clone())
+    def copy(self, x: Array) -> Array:
+        return Array(x.value.detach().clone())
 
-    def to_numpy(self, array: Array) -> NDArray[Any]:
+    def to_numpy(self, x: SupportedArrayTypes | Array) -> NDArray[Any]:
         """Return the value of an :class:`Array` as a NumPy array."""
-        v = array.value
+        v = x.value if type(x) is Array else x
         if isinstance(v, torch.Tensor):
             ret: NDArray[Any] = v.cpu().numpy()
         else:
             ret = np.asarray(v)
         return ret
 
-    def from_numpy(self, array: NDArray[Any]) -> Array:
-        return Array(torch.from_numpy(array).to(device=self._native_device))
+    def from_numpy(self, x: NDArray[Any]) -> Array:
+        return Array(torch.from_numpy(x).to(device=self._native_device))
 
-    def from_numpy_like(self, array: NDArray[Any], like: Array) -> Array:
+    def from_numpy_like(self, x: NDArray[Any], like: Array) -> Array:
         v = like.value
-        return Array(torch.from_numpy(array).to(dtype=v.dtype, device=v.device))
+        return Array(torch.from_numpy(x).to(dtype=v.dtype, device=v.device))
 
-    def to_array(self, array: float | bool) -> Array:
-        return Array(torch.tensor(array, device=self._native_device))
+    def asarray(self, x: bool | int | float | complex) -> Array:
+        return Array(torch.tensor(x, device=self._native_device))
 
     def stack(self, arrays: Sequence[Array], axis: int = 0) -> Array:
         if len(arrays) == 0:
             raise ValueError("Cannot stack an empty sequence of arrays.")
         return Array(torch.stack([a.value for a in arrays], dim=axis))
 
-    def reshape(self, array: Array, shape: tuple[int, ...]) -> Array:
-        return Array(torch.reshape(array.value, shape))
+    def reshape(self, x: Array, shape: tuple[int, ...]) -> Array:
+        return Array(torch.reshape(x.value, shape))
 
-    def transpose(self, array: Array, axis: tuple[int, ...] | None = None) -> Array:
-        v = array.value
+    def transpose(self, x: Array, axis: tuple[int, ...] | None = None) -> Array:
+        v = x.value
         dims = axis if axis is not None else tuple(reversed(range(v.ndim)))
         return Array(torch.permute(v, dims=dims))
 
-    def shape(self, array: Array) -> tuple[int, ...]:
-        return tuple(array.value.shape)
+    def shape(self, x: Array) -> tuple[int, ...]:
+        return tuple(x.value.shape)
 
-    def size(self, array: Array) -> int:
-        return int(array.value.numel())
+    def size(self, x: Array) -> int:
+        return int(x.value.numel())
 
-    def ndim(self, array: Array) -> int:
-        return int(array.value.ndim)
+    def ndim(self, x: Array) -> int:
+        return int(x.value.ndim)
 
-    def squeeze(self, array: Array, axis: int | tuple[int, ...] | None = None) -> Array:
-        v = array.value
+    def squeeze(self, x: Array, axis: int | tuple[int, ...] | None = None) -> Array:
+        v = x.value
         if axis is None:
             return Array(torch.squeeze(v))
         return Array(torch.squeeze(v, dim=axis))
 
-    def unsqueeze(self, array: Array, axis: int) -> Array:
-        return Array(torch.unsqueeze(array.value, dim=axis))
+    def unsqueeze(self, x: Array, axis: int) -> Array:
+        return Array(torch.unsqueeze(x.value, dim=axis))
 
-    def diag(self, array: Array) -> Array:
-        return Array(torch.diag(array.value))
+    def diag(self, x: Array) -> Array:
+        return Array(torch.diag(x.value))
 
-    def astype(self, array: Array, dtype: type[float | int | bool]) -> float | int | bool:
-        return dtype(array.value.item())
+    def astype(self, x: Array, dtype: DTypes) -> Array:
+        if dtype not in _DTYPE_MAP:
+            raise ValueError(f"Unsupported dtype '{dtype.value}' for PyTorch backend.")
+        return Array(x.value.to(dtype=_DTYPE_MAP[dtype]))
 
     # Linalg
 
-    def dot(self, array1: Array, array2: Array) -> Array:
-        return Array(torch.dot(array1.value, array2.value))
+    def dot(self, x1: Array, x2: Array) -> Array:
+        return Array(torch.dot(x1.value, x2.value))
 
-    def matmul(self, array1: Array, array2: Array) -> Array:
-        return Array(array1.value @ array2.value)
+    def matmul(self, x1: Array, x2: Array) -> Array:
+        return Array(x1.value @ x2.value)
 
-    def norm(
+    def vector_norm(
         self,
-        array: Array,
+        x: Array,
         p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Array:
-        return Array(torch.linalg.norm(array.value, ord=p, axis=axis, keepdim=keepdims))
+        return Array(torch.linalg.norm(x.value, ord=p, axis=axis, keepdim=keepdims))
 
     # Math reductions
 
-    def sum(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        v = array.value
+    def sum(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        v = x.value
         if axis is None:
             return Array(torch.sum(v))
         return Array(torch.sum(v, dim=axis, keepdim=keepdims))
 
-    def mean(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        v = array.value
+    def mean(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        v = x.value
         if axis is None:
             return Array(torch.mean(v))
         return Array(torch.mean(v, dim=axis, keepdim=keepdims))
 
-    def min(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        v = array.value
+    def min(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        v = x.value
         if axis is None:
             return Array(torch.min(v))
         return Array(torch.amin(v, dim=axis, keepdim=keepdims))
 
-    def max(self, array: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
-        v = array.value
+    def max(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+        v = x.value
         if axis is None:
             return Array(torch.max(v))
         return Array(torch.amax(v, dim=axis, keepdim=keepdims))
 
-    def any(self, array: Array) -> bool:
-        return bool(torch.any(array.value).item())
+    def any(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        return bool(torch.any(x.value, dim=axis, keepdim=keepdims).item())
 
-    def all(self, array: Array) -> bool:
-        return bool(torch.all(array.value).item())
+    def all(self, x: Array, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> bool:
+        return bool(torch.all(x.value, dim=axis, keepdim=keepdims).item())
 
     # Math elementwise — operands may be Array or scalar (operator dunders pass either).
     # ``Array | float`` covers both: PEP 484's numeric tower implicitly admits ``int``.
 
-    def add(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.add(_unwrap(array1), _unwrap(array2)))
+    def add(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.add(_unwrap(x1), _unwrap(x2)))
 
-    def iadd[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value.add_(_unwrap(array2))
-        return array1
+    def iadd[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value.add_(_unwrap(x2))
+        return x1
 
-    def sub(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.sub(_unwrap(array1), _unwrap(array2)))
+    def subtract(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.sub(_unwrap(x1), _unwrap(x2)))
 
-    def isub[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value.sub_(_unwrap(array2))
-        return array1
+    def isubtract[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value.sub_(_unwrap(x2))
+        return x1
 
-    def mul(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.mul(_unwrap(array1), _unwrap(array2)))
+    def multiply(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.mul(_unwrap(x1), _unwrap(x2)))
 
-    def imul[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value.mul_(_unwrap(array2))
-        return array1
+    def imultiply[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value.mul_(_unwrap(x2))
+        return x1
 
-    def div(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.div(_unwrap(array1), _unwrap(array2)))
+    def divide(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.div(_unwrap(x1), _unwrap(x2)))
 
-    def idiv[T: Array](self, array1: T, array2: Array | float) -> T:
-        array1.value.div_(_unwrap(array2))
-        return array1
+    def idivide[T: Array](self, x1: T, x2: int | float | complex | Array) -> T:
+        x1.value.div_(_unwrap(x2))
+        return x1
 
-    def pow(self, array: Array, p: float) -> Array:
-        return Array(torch.pow(array.value, p))
+    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
+        return Array(torch.pow(_unwrap(x), _unwrap(p)))
 
-    def negative(self, array: Array) -> Array:
-        return Array(torch.neg(array.value))
+    def negative(self, x: Array) -> Array:
+        return Array(torch.neg(x.value))
 
-    def absolute(self, array: Array) -> Array:
-        return Array(torch.abs(array.value))
+    def absolute(self, x: Array) -> Array:
+        return Array(torch.abs(x.value))
 
-    def sqrt(self, array: Array) -> Array:
-        return Array(torch.sqrt(array.value))
+    def sqrt(self, x: Array) -> Array:
+        return Array(torch.sqrt(x.value))
 
     # Comparisons
 
-    def eq(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.eq(_unwrap(array1), _unwrap(array2)))
+    def equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.eq(_unwrap(x1), _unwrap(x2)))
 
-    def ne(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.ne(_unwrap(array1), _unwrap(array2)))
+    def not_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.ne(_unwrap(x1), _unwrap(x2)))
 
-    def lt(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.lt(_unwrap(array1), _unwrap(array2)))
+    def less(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.lt(_unwrap(x1), _unwrap(x2)))
 
-    def le(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.le(_unwrap(array1), _unwrap(array2)))
+    def less_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.le(_unwrap(x1), _unwrap(x2)))
 
-    def gt(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.gt(_unwrap(array1), _unwrap(array2)))
+    def greater(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.gt(_unwrap(x1), _unwrap(x2)))
 
-    def ge(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.ge(_unwrap(array1), _unwrap(array2)))
+    def greater_equal(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.ge(_unwrap(x1), _unwrap(x2)))
 
     # Bitwise
 
-    def bitwise_and(self, array1: Array | float, array2: Array | float) -> Array:
-        return Array(torch.bitwise_and(_unwrap(array1), _unwrap(array2)))
+    def bitwise_and(self, x1: int | Array, x2: int | Array) -> Array:
+        return Array(torch.bitwise_and(_unwrap(x1), _unwrap(x2)))
 
     # Operators
 
-    def sign(self, array: Array) -> Array:
-        return Array(torch.sign(array.value))
+    def sign(self, x: Array) -> Array:
+        return Array(torch.sign(x.value))
 
-    def maximum(self, array1: Array | float, array2: Array | float) -> Array:
-        a, b = _unwrap(array1), _unwrap(array2)
+    def maximum(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        a, b = _unwrap(x1), _unwrap(x2)
         # torch.maximum requires both operands to be Tensors; lift Python scalars to
         # match the dtype/device of the tensor operand so the contract matches numpy.
         if not isinstance(a, torch.Tensor):
@@ -267,17 +282,17 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
             b = torch.tensor(b, dtype=a.dtype, device=a.device)
         return Array(torch.maximum(a, b))
 
-    def argmax(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
-        return Array(torch.argmax(array.value, dim=axis, keepdim=keepdims))
+    def argmax(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(torch.argmax(x.value, dim=axis, keepdim=keepdims))
 
-    def argmin(self, array: Array, axis: int | None = None, keepdims: bool = False) -> Array:
-        return Array(torch.argmin(array.value, dim=axis, keepdim=keepdims))
+    def argmin(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
+        return Array(torch.argmin(x.value, dim=axis, keepdim=keepdims))
 
-    def set_item(self, array: Array, key: ArrayKey, value: Array) -> None:
-        array.value[key] = value.value
+    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
+        x.value[key] = value.value
 
-    def get_item(self, array: Array, key: ArrayKey) -> Array:
-        return Array(array.value[key])
+    def get_item(self, x: Array, key: ArrayKey) -> Array:
+        return Array(x.value[key])
 
     # RNG
 
@@ -313,8 +328,8 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
         rand = torch.rand(size=shape, device=self._native_device, generator=self._generator)
         return Array((high - low) * rand + low)
 
-    def normal_like(self, array: Array, mean: float = 0.0, std: float = 1.0) -> Array:
-        v = array.value
+    def normal_like(self, x: Array, mean: float = 0.0, std: float = 1.0) -> Array:
+        v = x.value
         return Array(
             torch.normal(
                 mean=mean,
@@ -326,13 +341,13 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
             )
         )
 
-    def uniform_like(self, array: Array, low: float = 0.0, high: float = 1.0) -> Array:
-        v = array.value
+    def uniform_like(self, x: Array, low: float = 0.0, high: float = 1.0) -> Array:
+        v = x.value
         rand = torch.rand(size=tuple(v.shape), dtype=v.dtype, device=v.device, generator=self._generator)
         return Array((high - low) * rand + low)
 
-    def choice(self, array: Array, size: int, replace: bool = True) -> Array:
-        v = array.value
+    def choice(self, x: Array, size: int, replace: bool = True) -> Array:
+        v = x.value
         weights = torch.ones(v.shape[0], device=v.device)
         indices = weights.multinomial(num_samples=size, replacement=replace, generator=self._generator)
         return Array(v[indices])
