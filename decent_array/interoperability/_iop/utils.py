@@ -48,7 +48,7 @@ def device_of(x: Array) -> SupportedDevices:
     return _BACKEND_INSTANCE.device_of(x)
 
 
-def set_item(x: Array, key: ArrayKey, value: Array) -> None:
+def set_item(x: Array, key: ArrayKey, value: bool | int | float | complex | Array) -> None:
     """Set ``x[key] = value`` in place."""
     if _BACKEND_INSTANCE is None:
         raise _error

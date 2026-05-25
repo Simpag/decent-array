@@ -145,11 +145,16 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
     def diag(self, x: Array) -> Array:
         v = x.value
         rank = v.shape.ndims
-        if rank == 1:
-            return Array(tf.linalg.diag(v))
-        if rank == 2:
-            return Array(tf.linalg.diag_part(v))
-        raise ValueError(f"diag requires a 1- or 2-D tensor, got rank {rank}")
+        if rank != 1:
+            raise ValueError(f"diag requires a 1-D tensor, got rank {rank}")
+        return Array(tf.linalg.diag(v))
+
+    def diagonal(self, x: Array, offset: int = 0) -> Array:
+        v = x.value
+        rank = v.shape.ndims
+        if rank != 2:
+            raise ValueError(f"diagonal requires a 2-D tensor, got rank {rank}")
+        return Array(tf.linalg.diag_part(v, k=offset))
 
     def astype(self, x: Array, dtype: DTypes) -> Array:
         if dtype not in _DTYPE_MAP:
@@ -308,14 +313,14 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
             out = tf.expand_dims(out, axis=axis)
         return Array(out)
 
-    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
+    def set_item(self, x: Array, key: ArrayKey, value: bool | int | float | complex | Array) -> None:
         # TF eager tensors are immutable; round-trip through numpy so arbitrary indexing
         # patterns (slices, fancy indexing) Just Work. The wrapper is rebound to a fresh
         # tensor on the configured device. This is correct but allocates — algorithms
         # that hammer set_item in tight loops should consider numpy or pytorch.
         original = x.value
         np_array = original.numpy().copy()
-        np_array[key] = np.asarray(value.value)
+        np_array[key] = np.asarray(_unwrap(value))
         with tf.device(self._native_device):
             x.value = tf.convert_to_tensor(np_array, dtype=original.dtype)
 

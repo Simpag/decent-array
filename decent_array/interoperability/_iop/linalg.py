@@ -63,3 +63,14 @@ def vector_norm(x: Array, p: float = 2, axis: int | tuple[int, ...] | None = Non
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.vector_norm(x, p, axis, keepdims)
+
+
+def norm(x: Array, p: float = 2, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+    """
+    Vector norm of ``x``.
+
+    Alias for :func:`vector_norm`.
+    """
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.vector_norm(x, p, axis, keepdims)

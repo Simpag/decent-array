@@ -188,9 +188,15 @@ def test_diag_from_vector(backend: tuple) -> None:
     np.testing.assert_allclose(_np(iop.diag(arr)), np.diag([1.0, 2.0, 3.0]))
 
 
-def test_diag_from_matrix(backend: tuple) -> None:
+def test_diagonal_from_matrix(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
-    np.testing.assert_allclose(_np(iop.diag(arr)), [1.0, 4.0])
+    np.testing.assert_allclose(_np(iop.diagonal(arr)), [1.0, 4.0])
+
+
+def test_diagonal_with_offset(backend: tuple) -> None:
+    arr = iop.from_numpy(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))
+    np.testing.assert_allclose(_np(iop.diagonal(arr, offset=1)), [2.0])
+    np.testing.assert_allclose(_np(iop.diagonal(arr, offset=-1)), [3.0])
 
 
 def test_astype_to_float(backend: tuple) -> None:

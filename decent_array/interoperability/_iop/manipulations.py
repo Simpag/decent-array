@@ -136,10 +136,17 @@ def unsqueeze(x: Array, axis: int) -> Array:
 
 
 def diag(x: Array) -> Array:
-    """Diagonal: build from a vector or extract from a matrix."""
+    """Build a diagonal matrix from a 1-D vector."""
     if _BACKEND_INSTANCE is None:
         raise _error
     return _BACKEND_INSTANCE.diag(x)
+
+
+def diagonal(x: Array, offset: int = 0) -> Array:
+    """Extract the diagonal entries from a 2-D matrix at the given ``offset``."""
+    if _BACKEND_INSTANCE is None:
+        raise _error
+    return _BACKEND_INSTANCE.diagonal(x, offset)
 
 
 def astype(x: Array, dtype: DTypes) -> Array:

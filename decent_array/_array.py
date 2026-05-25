@@ -31,6 +31,8 @@ from typing import TYPE_CHECKING, Any, Self
 from decent_array.interoperability._backend_manager import register_backend_listener
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from decent_array.interoperability._abstracts import Backend
     from decent_array.types import ArrayKey, SupportedArrayTypes, SupportedDevices
 
@@ -185,7 +187,7 @@ class Array:  # noqa: PLR0904
 
     def __rand__(self, other: bool | int | Array, /) -> Array:
         """Element-wise bitwise/logical AND with the array on the right."""
-        return Array(other & self.value)
+        return Array((other.value if type(other) is Array else other) & self.value)
 
     # In-place arithmetic --------------------------------------------------
     #
@@ -235,8 +237,6 @@ class Array:  # noqa: PLR0904
 
     def __setitem__(self, key: ArrayKey, value: bool | int | float | complex | Array, /) -> None:
         """Set the item at ``key`` to ``value``."""
-        if not isinstance(value, Array):
-            value = Array(value)
         self._backend.set_item(self, key, value)
 
     # Containers / iteration ----------------------------------------------
@@ -302,3 +302,8 @@ class Array:  # noqa: PLR0904
     def device(self) -> SupportedDevices:
         """Return the device of the array."""
         return self._backend.device_of(self)
+
+    @property
+    def numpy(self) -> NDArray[Any]:
+        """Return a NumPy array view of the array's data."""
+        return self._backend.to_numpy(self)

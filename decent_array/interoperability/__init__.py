@@ -16,12 +16,13 @@ from ._backend_manager import default_device, set_backend
 from ._iop.bit_operators import bitwise_and
 from ._iop.comparasion import equal, greater, greater_equal, less, less_equal, not_equal
 from ._iop.creation import eye, ones, ones_like, zeros, zeros_like
-from ._iop.linalg import dot, matmul, vecdot, vector_norm
+from ._iop.linalg import dot, matmul, norm, vecdot, vector_norm
 from ._iop.manipulations import (
     asarray,
     astype,
     copy,
     diag,
+    diagonal,
     expand_dims,
     from_numpy,
     from_numpy_like,
@@ -70,6 +71,7 @@ __all__ = [
     "derive_seed",
     "device_of",
     "diag",
+    "diagonal",
     "divide",
     "dot",
     "equal",
@@ -92,6 +94,7 @@ __all__ = [
     "multiply",
     "ndim",
     "negative",
+    "norm",
     "normal",
     "normal_like",
     "not_equal",

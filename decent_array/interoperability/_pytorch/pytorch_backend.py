@@ -142,7 +142,14 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
         return Array(torch.unsqueeze(x.value, dim=axis))
 
     def diag(self, x: Array) -> Array:
+        if x.value.ndim != 1:
+            raise ValueError(f"diag requires a 1-D array, got {x.value.ndim}-D")
         return Array(torch.diag(x.value))
+
+    def diagonal(self, x: Array, offset: int = 0) -> Array:
+        if x.value.ndim != 2:
+            raise ValueError(f"diagonal requires a 2-D array, got {x.value.ndim}-D")
+        return Array(torch.diagonal(x.value, offset=offset))
 
     def astype(self, x: Array, dtype: DTypes) -> Array:
         if dtype not in _DTYPE_MAP:
@@ -288,8 +295,8 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def argmin(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         return Array(torch.argmin(x.value, dim=axis, keepdim=keepdims))
 
-    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
-        x.value[key] = value.value
+    def set_item(self, x: Array, key: ArrayKey, value: bool | int | float | complex | Array) -> None:
+        x.value[key] = _unwrap(value)
 
     def get_item(self, x: Array, key: ArrayKey) -> Array:
         return Array(x.value[key])

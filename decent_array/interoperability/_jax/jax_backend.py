@@ -132,7 +132,14 @@ class JaxBackend(Backend):  # noqa: PLR0904
         return Array(jnp.expand_dims(x.value, axis=axis))
 
     def diag(self, x: Array) -> Array:
+        if x.value.ndim != 1:
+            raise ValueError(f"diag requires a 1-D array, got {x.value.ndim}-D")
         return Array(jnp.diag(x.value))
+
+    def diagonal(self, x: Array, offset: int = 0) -> Array:
+        if x.value.ndim != 2:
+            raise ValueError(f"diagonal requires a 2-D array, got {x.value.ndim}-D")
+        return Array(jnp.diagonal(x.value, offset=offset))
 
     def astype(self, x: Array, dtype: DTypes) -> Array:
         if dtype not in _DTYPE_MAP:
@@ -259,9 +266,9 @@ class JaxBackend(Backend):  # noqa: PLR0904
     def argmin(self, x: Array, axis: int | None = None, keepdims: bool = False) -> Array:
         return Array(jnp.argmin(x.value, axis=axis, keepdims=keepdims))
 
-    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
+    def set_item(self, x: Array, key: ArrayKey, value: bool | int | float | complex | Array) -> None:
         # JAX arrays are immutable; rebind the wrapper to a new array with `key` updated.
-        x.value = x.value.at[key].set(value.value)
+        x.value = x.value.at[key].set(_unwrap(value))
 
     def get_item(self, x: Array, key: ArrayKey) -> Array:
         return Array(x.value[key])

@@ -124,7 +124,11 @@ class Backend(ABC):  # noqa: PLR0904
 
     @abstractmethod
     def diag(self, x: Array) -> Array:
-        """Diagonal: build from a vector or extract from a matrix."""
+        """Build a diagonal matrix from a 1-D vector."""
+
+    @abstractmethod
+    def diagonal(self, x: Array, offset: int = 0) -> Array:
+        """Extract the diagonal entries from a 2-D matrix at the given ``offset``."""
 
     @abstractmethod
     def astype(self, x: Array, dtype: DTypes) -> Array:
@@ -281,7 +285,7 @@ class Backend(ABC):  # noqa: PLR0904
         """Index of minimum value along ``axis``."""
 
     @abstractmethod
-    def set_item(self, x: Array, key: ArrayKey, value: Array) -> None:
+    def set_item(self, x: Array, key: ArrayKey, value: bool | int | float | complex | Array) -> None:
         """Set ``x[key] = value``."""
 
     @abstractmethod
