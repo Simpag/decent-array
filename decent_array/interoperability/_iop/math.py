@@ -89,11 +89,11 @@ def idivide[T: Array](x1: T, x2: int | float | complex | Array) -> T:
     return _BACKEND_INSTANCE.idivide(x1, x2)
 
 
-def pow(x: Array, p: int | float | complex) -> Array:  # noqa: A001
+def pow(x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:  # noqa: A001
     """Raise ``x`` to power ``p``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.pow(x, p)
+    return _BACKEND_INSTANCE.pow(x1, x2)
 
 
 def negative(x: Array) -> Array:

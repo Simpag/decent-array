@@ -252,12 +252,12 @@ def test_norm_default_l2(backend: tuple) -> None:
 
 def test_norm_p1(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([3.0, -4.0], dtype=np.float32))
-    np.testing.assert_allclose(_np(iop.vector_norm(arr, p=1)), 7.0)
+    np.testing.assert_allclose(_np(iop.vector_norm(arr, ord=1)), 7.0)
 
 
 def test_norm_dim_keepdims(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([[3.0, 4.0], [6.0, 8.0]], dtype=np.float32))
-    out = iop.vector_norm(arr, p=2, axis=1, keepdims=True)
+    out = iop.vector_norm(arr, ord=2, axis=1, keepdims=True)
     assert iop.shape(out) == (2, 1)
     np.testing.assert_allclose(_np(out).reshape(-1), [5.0, 10.0])
 
@@ -395,6 +395,8 @@ def test_idiv_func(backend: tuple) -> None:
 def test_pow_function(backend: tuple) -> None:
     arr = iop.from_numpy(np.array([2.0, 3.0, 4.0], dtype=np.float32))
     np.testing.assert_allclose(_np(iop.pow(arr, 2)), [4.0, 9.0, 16.0])
+    arr2 = iop.from_numpy(np.array([1.0, 2.0, 3.0], dtype=np.float32))
+    np.testing.assert_allclose(_np(iop.pow(arr, arr2)), [2.0, 9.0, 64.0])
 
 
 def test_negative(backend: tuple) -> None:

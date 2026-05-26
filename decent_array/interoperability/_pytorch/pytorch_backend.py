@@ -158,7 +158,7 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
 
     # Linalg
 
-    def dot(self, x1: Array, x2: Array) -> Array:
+    def vecdot(self, x1: Array, x2: Array) -> Array:
         return Array(torch.dot(x1.value, x2.value))
 
     def matmul(self, x1: Array, x2: Array) -> Array:
@@ -167,11 +167,11 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
     def vector_norm(
         self,
         x: Array,
-        p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
+        ord: int | float = 2,  # noqa: A002
     ) -> Array:
-        return Array(torch.linalg.norm(x.value, ord=p, axis=axis, keepdim=keepdims))
+        return Array(torch.linalg.norm(x.value, ord=ord, axis=axis, keepdim=keepdims))
 
     # Math reductions
 
@@ -236,8 +236,8 @@ class PyTorchBackend(Backend):  # noqa: PLR0904
         x1.value.div_(_unwrap(x2))
         return x1
 
-    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
-        return Array(torch.pow(_unwrap(x), _unwrap(p)))
+    def pow(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(torch.pow(_unwrap(x1), _unwrap(x2)))
 
     def negative(self, x: Array) -> Array:
         return Array(torch.neg(x.value))

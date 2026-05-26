@@ -149,7 +149,7 @@ class NumpyBackend(Backend):  # noqa: PLR0904
 
     # Linalg
 
-    def dot(self, x1: Array, x2: Array) -> Array:
+    def vecdot(self, x1: Array, x2: Array) -> Array:
         return Array(np.dot(x1.value, x2.value))
 
     def matmul(self, x1: Array, x2: Array) -> Array:
@@ -158,11 +158,11 @@ class NumpyBackend(Backend):  # noqa: PLR0904
     def vector_norm(
         self,
         x: Array,
-        p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
+        ord: int | float = 2,  # noqa: A002
     ) -> Array:
-        return Array(np.linalg.norm(x.value, ord=p, axis=axis, keepdims=keepdims))
+        return Array(np.linalg.norm(x.value, ord=ord, axis=axis, keepdims=keepdims))
 
     # Math reductions
 
@@ -215,8 +215,8 @@ class NumpyBackend(Backend):  # noqa: PLR0904
         x1.value /= _unwrap(x2)
         return x1
 
-    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
-        return Array(np.power(_unwrap(x), _unwrap(p)))
+    def pow(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(np.power(_unwrap(x1), _unwrap(x2)))
 
     def negative(self, x: Array) -> Array:
         return Array(np.negative(x.value))

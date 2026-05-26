@@ -137,7 +137,7 @@ class Backend(ABC):  # noqa: PLR0904
     # Linalg --------------------------------------------------------------
 
     @abstractmethod
-    def dot(self, x1: Array, x2: Array) -> Array:
+    def vecdot(self, x1: Array, x2: Array) -> Array:
         """Dot product of two arrays."""
 
     @abstractmethod
@@ -148,9 +148,9 @@ class Backend(ABC):  # noqa: PLR0904
     def vector_norm(
         self,
         x: Array,
-        p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
+        ord: int | float = 2,  # noqa: A002
     ) -> Array:
         """Compute the norm of ``x``."""
 
@@ -217,8 +217,8 @@ class Backend(ABC):  # noqa: PLR0904
         """In-place element-wise division."""
 
     @abstractmethod
-    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
-        """Raise ``x`` to power ``p``."""
+    def pow(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        """Raise ``x1`` to power ``x2``."""
 
     @abstractmethod
     def negative(self, x: Array) -> Array:

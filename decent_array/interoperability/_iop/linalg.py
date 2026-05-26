@@ -37,7 +37,7 @@ def vecdot(x1: Array, x2: Array) -> Array:
     """Vector dot product of two arrays."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.dot(x1, x2)
+    return _BACKEND_INSTANCE.vecdot(x1, x2)
 
 
 def dot(x1: Array, x2: Array) -> Array:
@@ -48,7 +48,7 @@ def dot(x1: Array, x2: Array) -> Array:
     """
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.dot(x1, x2)
+    return _BACKEND_INSTANCE.vecdot(x1, x2)
 
 
 def matmul(x1: Array, x2: Array) -> Array:
@@ -58,14 +58,24 @@ def matmul(x1: Array, x2: Array) -> Array:
     return _BACKEND_INSTANCE.matmul(x1, x2)
 
 
-def vector_norm(x: Array, p: float = 2, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+def vector_norm(
+    x: Array,
+    axis: int | tuple[int, ...] | None = None,
+    keepdims: bool = False,
+    ord: int | float = 2,  # noqa: A002
+) -> Array:
     """Vector norm of ``x``."""
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.vector_norm(x, p, axis, keepdims)
+    return _BACKEND_INSTANCE.vector_norm(x, axis, keepdims, ord)
 
 
-def norm(x: Array, p: float = 2, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Array:
+def norm(
+    x: Array,
+    axis: int | tuple[int, ...] | None = None,
+    keepdims: bool = False,
+    ord: int | float = 2,  # noqa: A002
+) -> Array:
     """
     Vector norm of ``x``.
 
@@ -73,4 +83,4 @@ def norm(x: Array, p: float = 2, axis: int | tuple[int, ...] | None = None, keep
     """
     if _BACKEND_INSTANCE is None:
         raise _error
-    return _BACKEND_INSTANCE.vector_norm(x, p, axis, keepdims)
+    return _BACKEND_INSTANCE.vector_norm(x, axis, keepdims, ord)

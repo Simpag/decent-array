@@ -163,7 +163,7 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
 
     # Linalg
 
-    def dot(self, x1: Array, x2: Array) -> Array:
+    def vecdot(self, x1: Array, x2: Array) -> Array:
         return Array(tf.tensordot(x1.value, x2.value, axes=1))
 
     def matmul(self, x1: Array, x2: Array) -> Array:
@@ -177,15 +177,15 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
     def vector_norm(
         self,
         x: Array,
-        p: float = 2,
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
+        ord: int | float = 2,  # noqa: A002
     ) -> Array:
         v = x.value
         # tf.norm defaults differ from np.linalg.norm on 2-D inputs (operator vs.
         # Frobenius); match numpy's flat default by reducing over both trailing axes.
         axis = axis if axis is not None else (-2, -1) if v.ndim == 2 else None
-        return Array(tf.norm(v, ord=p, axis=axis, keepdims=keepdims))
+        return Array(tf.norm(v, ord=ord, axis=axis, keepdims=keepdims))
 
     # Math reductions
 
@@ -239,8 +239,8 @@ class TensorflowBackend(Backend):  # noqa: PLR0904
         x1.value = tf.divide(x1.value, _unwrap(x2))
         return x1
 
-    def pow(self, x: int | float | complex | Array, p: int | float | complex | Array) -> Array:
-        return Array(tf.pow(_unwrap(x), _unwrap(p)))
+    def pow(self, x1: int | float | complex | Array, x2: int | float | complex | Array) -> Array:
+        return Array(tf.pow(_unwrap(x1), _unwrap(x2)))
 
     def negative(self, x: Array) -> Array:
         return Array(tf.negative(x.value))
